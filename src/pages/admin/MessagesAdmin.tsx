@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -12,6 +12,7 @@ interface Message {
   id: number;
   name: string;
   email: string;
+  subject?: string;
   message: string;
   date: string;
   read: boolean;
@@ -19,39 +20,51 @@ interface Message {
 
 const MessagesAdmin = () => {
   const { toast } = useToast();
-  const [messages, setMessages] = useState<Message[]>(() => {
-    const savedMessages = localStorage.getItem("portfolioMessages");
-    return savedMessages ? JSON.parse(savedMessages) : [
-      {
-        id: 1,
-        name: "John Smith",
-        email: "john@example.com",
-        message: "I'm interested in hiring you for a project. Please contact me when you have a chance.",
-        date: "May 10, 2023",
-        read: false
-      },
-      {
-        id: 2,
-        name: "Sarah Johnson",
-        email: "sarah@example.com",
-        message: "Your portfolio is impressive! I would love to discuss a potential collaboration.",
-        date: "May 5, 2023",
-        read: true
-      },
-      {
-        id: 3,
-        name: "Michael Lee",
-        email: "michael@example.com",
-        message: "Hello, I have a question about your UI/UX design services. What is your typical process?",
-        date: "April 28, 2023",
-        read: true
-      },
-    ];
-  });
-
+  const [messages, setMessages] = useState<Message[]>([]);
   const [viewMessageDialog, setViewMessageDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
+
+  useEffect(() => {
+    // Load messages from localStorage
+    const savedMessages = localStorage.getItem("portfolioMessages");
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    } else {
+      // If no messages in localStorage, set default messages
+      const defaultMessages = [
+        {
+          id: 1,
+          name: "John Smith",
+          email: "john@example.com",
+          subject: "Project Inquiry",
+          message: "I'm interested in hiring you for a project. Please contact me when you have a chance.",
+          date: "May 10, 2023",
+          read: false
+        },
+        {
+          id: 2,
+          name: "Sarah Johnson",
+          email: "sarah@example.com",
+          subject: "Collaboration Opportunity",
+          message: "Your portfolio is impressive! I would love to discuss a potential collaboration.",
+          date: "May 5, 2023",
+          read: true
+        },
+        {
+          id: 3,
+          name: "Michael Lee",
+          email: "michael@example.com",
+          subject: "Design Services",
+          message: "Hello, I have a question about your UI/UX design services. What is your typical process?",
+          date: "April 28, 2023",
+          read: true
+        },
+      ];
+      setMessages(defaultMessages);
+      localStorage.setItem("portfolioMessages", JSON.stringify(defaultMessages));
+    }
+  }, []);
 
   const handleView = (message: Message) => {
     setSelectedMessage(message);
@@ -116,6 +129,7 @@ const MessagesAdmin = () => {
                   <TableHead className="w-12"></TableHead>
                   <TableHead>Sender</TableHead>
                   <TableHead>Email</TableHead>
+                  <TableHead>Subject</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -134,6 +148,7 @@ const MessagesAdmin = () => {
                       <div className="font-medium">{message.name}</div>
                     </TableCell>
                     <TableCell>{message.email}</TableCell>
+                    <TableCell>{message.subject || "No subject"}</TableCell>
                     <TableCell>{message.date}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
@@ -171,6 +186,9 @@ const MessagesAdmin = () => {
               </DialogDescription>
             </DialogHeader>
             <div className="mt-2">
+              {selectedMessage?.subject && (
+                <p className="font-medium mb-2">Subject: {selectedMessage.subject}</p>
+              )}
               <p className="text-sm whitespace-pre-wrap">{selectedMessage?.message}</p>
             </div>
             <DialogFooter>

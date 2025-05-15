@@ -25,7 +25,32 @@ const Contact = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission
+    // Create a new message object
+    const newMessage = {
+      id: Date.now(),
+      name: formData.name,
+      email: formData.email,
+      subject: formData.subject,
+      message: formData.message,
+      date: new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      }),
+      read: false
+    };
+    
+    // Get existing messages from localStorage
+    const existingMessages = localStorage.getItem("portfolioMessages");
+    const messagesArray = existingMessages ? JSON.parse(existingMessages) : [];
+    
+    // Add new message to the beginning of the array
+    messagesArray.unshift(newMessage);
+    
+    // Save updated messages to localStorage
+    localStorage.setItem("portfolioMessages", JSON.stringify(messagesArray));
+    
+    // Simulate form submission delay
     setTimeout(() => {
       toast({
         title: "Message sent!",
