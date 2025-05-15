@@ -15,6 +15,7 @@ import NewCertificate from "./pages/admin/NewCertificate";
 import MessagesAdmin from "./pages/admin/MessagesAdmin";
 import ProfileAdmin from "./pages/admin/ProfileAdmin";
 import NotFound from "./pages/NotFound";
+import ProtectedRoute from "./components/admin/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -27,13 +28,18 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/admin/dashboard" element={<Dashboard />} />
-          <Route path="/admin/projects" element={<ProjectsAdmin />} />
-          <Route path="/admin/projects/new" element={<NewProject />} />
-          <Route path="/admin/certificates" element={<CertificatesAdmin />} />
-          <Route path="/admin/certificates/new" element={<NewCertificate />} />
-          <Route path="/admin/messages" element={<MessagesAdmin />} />
-          <Route path="/admin/profile" element={<ProfileAdmin />} />
+          
+          {/* Protected Admin Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/admin/dashboard" element={<Dashboard />} />
+            <Route path="/admin/projects" element={<ProjectsAdmin />} />
+            <Route path="/admin/projects/new" element={<NewProject />} />
+            <Route path="/admin/certificates" element={<CertificatesAdmin />} />
+            <Route path="/admin/certificates/new" element={<NewCertificate />} />
+            <Route path="/admin/messages" element={<MessagesAdmin />} />
+            <Route path="/admin/profile" element={<ProfileAdmin />} />
+          </Route>
+          
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
