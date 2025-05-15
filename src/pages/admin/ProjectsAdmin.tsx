@@ -169,9 +169,11 @@ const ProjectsAdmin = () => {
                   </td>
                   <td className="p-3">
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <Link to={`/admin/projects/edit/${project.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button 
                         variant="ghost" 
                         size="sm" 
