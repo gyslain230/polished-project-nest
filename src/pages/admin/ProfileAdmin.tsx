@@ -53,13 +53,15 @@ const ProfileAdmin = () => {
     // Handle nested properties for social links
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
-      setProfile(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof Profile],
-          [child]: value
-        }
-      }));
+      if (parent === "socialLinks") {
+        setProfile(prev => ({
+          ...prev,
+          socialLinks: {
+            ...prev.socialLinks,
+            [child]: value
+          }
+        }));
+      }
     } else {
       setProfile(prev => ({
         ...prev,
