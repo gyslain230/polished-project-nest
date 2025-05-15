@@ -1,10 +1,9 @@
-
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, FileText, Certificate, User } from "lucide-react";
+import { Home, FileText, Award, User } from "lucide-react";
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -26,7 +25,7 @@ const Dashboard = () => {
     {
       title: "Certificates",
       value: 5,
-      icon: <Certificate className="h-6 w-6 text-primary" />,
+      icon: <Award className="h-6 w-6 text-primary" />,
       link: "/admin/certificates"
     },
     {

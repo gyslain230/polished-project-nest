@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
-import { Home, FileText, Certificate, LogOut, Mail, Menu, User, X } from "lucide-react";
+import { Home, FileText, Award, LogOut, Mail, Menu, User, X } from "lucide-react";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -47,7 +46,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     {
       name: "Certificates",
       href: "/admin/certificates",
-      icon: <Certificate className="h-5 w-5" />
+      icon: <Award className="h-5 w-5" />
     },
     {
       name: "Messages",

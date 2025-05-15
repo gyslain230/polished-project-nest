@@ -1,5 +1,5 @@
 
-import { Certificate } from "lucide-react";
+import { Award } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const CertificateCard = ({ title, issuer, date, image }: {
@@ -17,7 +17,7 @@ const CertificateCard = ({ title, issuer, date, image }: {
           className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
         <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm p-2 rounded-full">
-          <Certificate className="h-5 w-5 text-primary" />
+          <Award className="h-5 w-5 text-primary" />
         </div>
       </div>
       <CardContent className="p-6">
