@@ -10,6 +10,10 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import ProjectsAdmin from "./pages/admin/ProjectsAdmin";
 import NewProject from "./pages/admin/NewProject";
+import CertificatesAdmin from "./pages/admin/CertificatesAdmin";
+import NewCertificate from "./pages/admin/NewCertificate";
+import MessagesAdmin from "./pages/admin/MessagesAdmin";
+import ProfileAdmin from "./pages/admin/ProfileAdmin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +30,10 @@ const App = () => (
           <Route path="/admin/dashboard" element={<Dashboard />} />
           <Route path="/admin/projects" element={<ProjectsAdmin />} />
           <Route path="/admin/projects/new" element={<NewProject />} />
+          <Route path="/admin/certificates" element={<CertificatesAdmin />} />
+          <Route path="/admin/certificates/new" element={<NewCertificate />} />
+          <Route path="/admin/messages" element={<MessagesAdmin />} />
+          <Route path="/admin/profile" element={<ProfileAdmin />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
