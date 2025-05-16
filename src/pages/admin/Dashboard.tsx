@@ -60,13 +60,13 @@ const Dashboard = () => {
         if (certsError) throw certsError;
         if (certsCount !== null) setCertificateCount(certsCount);
         
-        // Fetch message count
-        const { count: msgsCount, error: msgsError } = await supabase
+        // Fetch message count - improved query
+        const { data: messagesData, error: msgsError } = await supabase
           .from('messages')
-          .select('*', { count: 'exact', head: true });
+          .select('id');
         
         if (msgsError) throw msgsError;
-        if (msgsCount !== null) setMessageCount(msgsCount);
+        if (messagesData) setMessageCount(messagesData.length);
         
         // Fetch profile count
         const { count: profsCount, error: profsError } = await supabase

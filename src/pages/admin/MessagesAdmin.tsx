@@ -28,21 +28,22 @@ const MessagesAdmin = () => {
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
 
-  useEffect(() => {
-    fetchMessages();
-  }, []);
-
   const fetchMessages = async () => {
     try {
       setLoading(true);
+      console.log("Fetching messages...");
+      
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .order('created_at', { ascending: false });
       
       if (error) {
+        console.error("Supabase error:", error);
         throw error;
       }
+      
+      console.log("Messages data from Supabase:", data);
       
       if (data) {
         // Ensure each message has a date field, fallback to created_at if not present
@@ -55,7 +56,10 @@ const MessagesAdmin = () => {
           })
         }));
         
+        console.log("Processed messages:", messagesWithDate);
         setMessages(messagesWithDate);
+      } else {
+        setMessages([]);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
@@ -68,6 +72,10 @@ const MessagesAdmin = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchMessages();
+  }, []);
 
   const handleView = async (message: Message) => {
     setSelectedMessage(message);
@@ -144,6 +152,13 @@ const MessagesAdmin = () => {
               <Badge variant="secondary">{unreadCount} unread</Badge>
             )}
           </div>
+          <Button 
+            variant="outline" 
+            onClick={fetchMessages}
+            disabled={loading}
+          >
+            Refresh
+          </Button>
         </div>
         
         <div className="bg-card rounded-lg border border-border shadow-sm">

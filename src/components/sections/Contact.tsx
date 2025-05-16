@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -25,7 +26,7 @@ const Contact = () => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Format the date
+    // Format the date consistently with how we display it
     const formattedDate = new Date().toLocaleDateString('en-US', { 
       year: 'numeric', 
       month: 'long', 
@@ -33,8 +34,7 @@ const Contact = () => {
     });
     
     try {
-      // Save to Supabase
-      const { error } = await supabase.from('messages').insert({
+      console.log("Submitting message to Supabase:", {
         name: formData.name,
         email: formData.email,
         subject: formData.subject,
@@ -43,7 +43,22 @@ const Contact = () => {
         read: false
       });
       
-      if (error) throw error;
+      // Save to Supabase
+      const { error, data } = await supabase.from('messages').insert({
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        date: formattedDate,
+        read: false
+      }).select();
+      
+      if (error) {
+        console.error("Supabase error:", error);
+        throw error;
+      }
+      
+      console.log("Message saved successfully:", data);
       
       toast({
         title: "Message sent!",
