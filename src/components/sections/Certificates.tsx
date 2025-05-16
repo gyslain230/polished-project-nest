@@ -2,6 +2,16 @@
 import { useEffect, useState } from "react";
 import { Award } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
+
+interface Certificate {
+  id: string;
+  title: string;
+  issuer: string;
+  date: string;
+  image: string;
+}
 
 const CertificateCard = ({ title, issuer, date, image }: {
   title: string;
@@ -31,37 +41,40 @@ const CertificateCard = ({ title, issuer, date, image }: {
 };
 
 const Certificates = () => {
-  const [certificates, setCertificates] = useState([
-    {
-      id: 1,
-      title: "Advanced React Development",
-      issuer: "Frontend Masters",
-      date: "June 2023",
-      image: "https://images.unsplash.com/photo-1496171367470-9ed9a91ea931?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
-    },
-    {
-      id: 2,
-      title: "Full Stack Web Development",
-      issuer: "Udacity",
-      date: "January 2023",
-      image: "https://images.unsplash.com/photo-1551434678-e076c223a692?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
-    },
-    {
-      id: 3,
-      title: "UI/UX Design Foundations",
-      issuer: "Design+Code",
-      date: "October 2022",
-      image: "https://images.unsplash.com/photo-1522542550221-31fd19575a2d?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1170&q=80"
-    },
-  ]);
+  const { toast } = useToast();
+  const [certificates, setCertificates] = useState<Certificate[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Load certificates from localStorage if available
   useEffect(() => {
-    const savedCertificates = localStorage.getItem("portfolioCertificates");
-    if (savedCertificates) {
-      setCertificates(JSON.parse(savedCertificates));
+    async function fetchCertificates() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('certificates')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setCertificates(data);
+        }
+      } catch (error) {
+        console.error('Error fetching certificates:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load certificates. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
-  }, []);
+
+    fetchCertificates();
+  }, [toast]);
 
   return (
     <section id="certificates" className="py-24 section-padding">
@@ -75,16 +88,27 @@ const Certificates = () => {
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {certificates.map((cert) => (
-            <div key={cert.id} className="animate-fade-in" style={{ animationDelay: `${cert.id * 0.1}s` }}>
-              <CertificateCard 
-                title={cert.title}
-                issuer={cert.issuer}
-                date={cert.date}
-                image={cert.image}
-              />
+          {loading ? (
+            // Simple loading state
+            Array(3).fill(0).map((_, index) => (
+              <div key={index} className="animate-pulse bg-secondary h-80 rounded-lg"></div>
+            ))
+          ) : certificates.length > 0 ? (
+            certificates.map((cert, index) => (
+              <div key={cert.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <CertificateCard 
+                  title={cert.title}
+                  issuer={cert.issuer}
+                  date={cert.date}
+                  image={cert.image}
+                />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-3 text-center py-10">
+              <p className="text-muted-foreground">No certificates found.</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </section>

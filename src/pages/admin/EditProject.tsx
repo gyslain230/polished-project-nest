@@ -6,17 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import AdminLayout from "@/components/admin/AdminLayout";
-import { ArrowLeft, Save, Plus, X } from "lucide-react";
+import { ArrowLeft, Save, X } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   image: string;
   tags: string[];
-  demoLink: string;
-  githubLink: string;
-  date?: string;
+  demo_link: string;
+  github_link: string;
 }
 
 const EditProject = () => {
@@ -24,44 +24,65 @@ const EditProject = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     image: "",
-    demoLink: "",
-    githubLink: "",
+    demo_link: "",
+    github_link: "",
   });
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
-    // Load project data
-    const savedProjects = localStorage.getItem("portfolioProjects");
-    if (savedProjects) {
-      const projects: Project[] = JSON.parse(savedProjects);
-      const project = projects.find(p => p.id === Number(projectId));
+    const fetchProject = async () => {
+      if (!projectId) return;
       
-      if (project) {
-        setFormData({
-          title: project.title,
-          description: project.description,
-          image: project.image,
-          demoLink: project.demoLink,
-          githubLink: project.githubLink,
-        });
-        setTags(project.tags);
-      } else {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .eq('id', projectId)
+          .single();
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setFormData({
+            title: data.title,
+            description: data.description,
+            image: data.image,
+            demo_link: data.demo_link,
+            github_link: data.github_link,
+          });
+          setTags(data.tags);
+        } else {
+          setNotFound(true);
+          toast({
+            title: "Project not found",
+            description: "The requested project could not be found.",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching project:', error);
         setNotFound(true);
         toast({
-          title: "Project not found",
-          description: "The requested project could not be found.",
+          title: "Error",
+          description: "Failed to load project data. Please try again later.",
           variant: "destructive"
         });
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      setNotFound(true);
-    }
+    };
+
+    fetchProject();
   }, [projectId, toast]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -83,45 +104,56 @@ const EditProject = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!projectId) return;
+    
     setIsSubmitting(true);
     
-    const savedProjects = localStorage.getItem("portfolioProjects");
-    if (savedProjects) {
-      const projects: Project[] = JSON.parse(savedProjects);
-      const updatedProjects = projects.map(project => {
-        if (project.id === Number(projectId)) {
-          return {
-            ...project,
-            title: formData.title,
-            description: formData.description,
-            image: formData.image,
-            tags: tags,
-            demoLink: formData.demoLink,
-            githubLink: formData.githubLink,
-            date: new Date().toLocaleDateString('en-US', { 
-              year: 'numeric', 
-              month: 'long', 
-              day: 'numeric' 
-            })
-          };
-        }
-        return project;
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({
+          title: formData.title,
+          description: formData.description,
+          image: formData.image,
+          tags: tags,
+          demo_link: formData.demo_link,
+          github_link: formData.github_link,
+        })
+        .eq('id', projectId);
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast({
+        title: "Project updated",
+        description: "Your project has been successfully updated."
       });
       
-      localStorage.setItem("portfolioProjects", JSON.stringify(updatedProjects));
-      
-      setTimeout(() => {
-        toast({
-          title: "Project updated",
-          description: "Your project has been successfully updated."
-        });
-        setIsSubmitting(false);
-        navigate("/admin/projects");
-      }, 1000);
+      navigate("/admin/projects");
+    } catch (error) {
+      console.error('Error updating project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update project. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="p-6 text-center">
+          <p>Loading project data...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   if (notFound) {
     return (
@@ -225,13 +257,13 @@ const EditProject = () => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="demoLink" className="text-sm font-medium">
+            <label htmlFor="demo_link" className="text-sm font-medium">
               Live Demo Link
             </label>
             <Input
-              id="demoLink"
-              name="demoLink"
-              value={formData.demoLink}
+              id="demo_link"
+              name="demo_link"
+              value={formData.demo_link}
               onChange={handleChange}
               placeholder="https://example.com"
               required
@@ -239,13 +271,13 @@ const EditProject = () => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="githubLink" className="text-sm font-medium">
+            <label htmlFor="github_link" className="text-sm font-medium">
               GitHub Repository Link
             </label>
             <Input
-              id="githubLink"
-              name="githubLink"
-              value={formData.githubLink}
+              id="github_link"
+              name="github_link"
+              value={formData.github_link}
               onChange={handleChange}
               placeholder="https://github.com/yourusername/repo"
               required

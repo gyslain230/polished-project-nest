@@ -5,151 +5,196 @@ import { Button } from "@/components/ui/button";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Award, MessageSquare, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
-interface Project {
-  id: number;
-  title: string;
-  date?: string;
+interface ProjectCount {
+  count: number;
 }
 
-interface Certificate {
-  id: number;
-  title: string;
+interface CertificateCount {
+  count: number;
+}
+
+interface MessageCount {
+  count: number;
+}
+
+interface ProfileCount {
+  count: number;
+}
+
+interface Activity {
+  action: string;
   date: string;
-}
-
-interface Message {
-  id: number;
-  name: string;
-  action?: string;
-  date: string;
-}
-
-interface Profile {
-  name: string;
-  role: string;
 }
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [certificates, setCertificates] = useState<Certificate[]>([]);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [recentActivities, setRecentActivities] = useState<{action: string, date: string}[]>([]);
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [projectCount, setProjectCount] = useState(0);
+  const [certificateCount, setCertificateCount] = useState(0);
+  const [messageCount, setMessageCount] = useState(0);
+  const [profileCount, setProfileCount] = useState(0);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
-    // Load projects
-    const savedProjects = localStorage.getItem("portfolioProjects");
-    if (savedProjects) {
-      setProjects(JSON.parse(savedProjects));
-    }
+    const fetchCounts = async () => {
+      try {
+        setLoading(true);
 
-    // Load certificates
-    const savedCertificates = localStorage.getItem("portfolioCertificates");
-    if (savedCertificates) {
-      setCertificates(JSON.parse(savedCertificates));
-    }
-
-    // Load messages
-    const savedMessages = localStorage.getItem("portfolioMessages");
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    }
-
-    // Load profile
-    const savedProfile = localStorage.getItem("portfolioProfile");
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
-    }
-
-    // Generate recent activities based on available data
-    const activities = [];
-    
-    // Add recent project activities if available
-    if (savedProjects) {
-      const parsedProjects = JSON.parse(savedProjects);
-      if (parsedProjects.length > 0) {
-        // Take the most recent projects (up to 2)
-        parsedProjects.slice(0, 2).forEach((project: Project) => {
-          activities.push({
-            action: `Added project: ${project.title}`,
-            date: project.date || "Recently"
+        // Fetch project count
+        const { count: projectsCount, error: projectsError } = await supabase
+          .from('projects')
+          .select('*', { count: 'exact', head: true });
+        
+        if (projectsError) throw projectsError;
+        if (projectsCount !== null) setProjectCount(projectsCount);
+        
+        // Fetch certificate count
+        const { count: certsCount, error: certsError } = await supabase
+          .from('certificates')
+          .select('*', { count: 'exact', head: true });
+        
+        if (certsError) throw certsError;
+        if (certsCount !== null) setCertificateCount(certsCount);
+        
+        // Fetch message count
+        const { count: msgsCount, error: msgsError } = await supabase
+          .from('messages')
+          .select('*', { count: 'exact', head: true });
+        
+        if (msgsError) throw msgsError;
+        if (msgsCount !== null) setMessageCount(msgsCount);
+        
+        // Fetch profile count
+        const { count: profsCount, error: profsError } = await supabase
+          .from('profiles')
+          .select('*', { count: 'exact', head: true });
+        
+        if (profsError) throw profsError;
+        if (profsCount !== null) setProfileCount(profsCount);
+        
+        // Generate recent activities
+        const activities: Activity[] = [];
+        
+        // Get recent projects
+        const { data: recentProjects, error: recentProjectsError } = await supabase
+          .from('projects')
+          .select('title, created_at')
+          .order('created_at', { ascending: false })
+          .limit(2);
+        
+        if (recentProjectsError) throw recentProjectsError;
+        
+        if (recentProjects && recentProjects.length > 0) {
+          recentProjects.forEach(project => {
+            const date = new Date(project.created_at).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric'
+            });
+            activities.push({
+              action: `Added project: ${project.title}`,
+              date
+            });
           });
+        }
+        
+        // Get recent certificates
+        const { data: recentCerts, error: recentCertsError } = await supabase
+          .from('certificates')
+          .select('title, created_at')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (recentCertsError) throw recentCertsError;
+        
+        if (recentCerts && recentCerts.length > 0) {
+          const date = new Date(recentCerts[0].created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          activities.push({
+            action: `Added certificate: ${recentCerts[0].title}`,
+            date
+          });
+        }
+        
+        // Get recent messages
+        const { data: recentMsgs, error: recentMsgsError } = await supabase
+          .from('messages')
+          .select('name, created_at')
+          .order('created_at', { ascending: false })
+          .limit(1);
+        
+        if (recentMsgsError) throw recentMsgsError;
+        
+        if (recentMsgs && recentMsgs.length > 0) {
+          const date = new Date(recentMsgs[0].created_at).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          activities.push({
+            action: `Received message from: ${recentMsgs[0].name}`,
+            date
+          });
+        }
+        
+        // If we don't have enough real activities, add some default ones
+        if (activities.length < 3) {
+          const defaultActivities = [
+            { action: "Added new project", date: "Today, 12:30 PM" },
+            { action: "Updated about section", date: "Yesterday, 3:15 PM" },
+            { action: "Uploaded new certificate", date: "May 10, 2023" }
+          ];
+          
+          // Add enough default activities to make at least 3 total
+          const neededDefaults = 3 - activities.length;
+          activities.push(...defaultActivities.slice(0, neededDefaults));
+        }
+        
+        setRecentActivities(activities);
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data. Please try again later.",
+          variant: "destructive",
         });
+      } finally {
+        setLoading(false);
       }
-    }
-    
-    // Add recent certificate activities if available
-    if (savedCertificates) {
-      const parsedCertificates = JSON.parse(savedCertificates);
-      if (parsedCertificates.length > 0) {
-        // Take the most recent certificate
-        activities.push({
-          action: `Added certificate: ${parsedCertificates[0].title}`,
-          date: parsedCertificates[0].date
-        });
-      }
-    }
-    
-    // Add message activities if available
-    if (savedMessages) {
-      const parsedMessages = JSON.parse(savedMessages);
-      if (parsedMessages.length > 0) {
-        // Take the most recent message
-        activities.push({
-          action: `Received message from: ${parsedMessages[0].name}`,
-          date: parsedMessages[0].date
-        });
-      }
-    }
-    
-    // Add profile update activity if available
-    if (savedProfile) {
-      activities.push({
-        action: "Updated profile information",
-        date: "Recently"
-      });
-    }
-    
-    // If we don't have enough real activities, add some default ones
-    if (activities.length < 3) {
-      const defaultActivities = [
-        { action: "Added new project", date: "Today, 12:30 PM" },
-        { action: "Updated about section", date: "Yesterday, 3:15 PM" },
-        { action: "Uploaded new certificate", date: "May 10, 2023" }
-      ];
-      
-      // Add enough default activities to make at least 3 total
-      const neededDefaults = 3 - activities.length;
-      activities.push(...defaultActivities.slice(0, neededDefaults));
-    }
-    
-    setRecentActivities(activities);
-  }, []);
+    };
+
+    fetchCounts();
+  }, [toast]);
 
   const stats = [
     {
       title: "Projects",
-      value: projects.length || 0,
+      value: projectCount,
       icon: <FileText className="h-6 w-6 text-primary" />,
       link: "/admin/projects"
     },
     {
       title: "Certificates",
-      value: certificates.length || 0,
+      value: certificateCount,
       icon: <Award className="h-6 w-6 text-primary" />,
       link: "/admin/certificates"
     },
     {
       title: "Messages",
-      value: messages.length || 0,
+      value: messageCount,
       icon: <MessageSquare className="h-6 w-6 text-primary" />,
       link: "/admin/messages"
     },
     {
       title: "Profile",
-      value: profile ? 1 : 0,
+      value: profileCount,
       icon: <User className="h-6 w-6 text-primary" />,
       link: "/admin/profile"
     }
@@ -170,7 +215,13 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="flex justify-between items-center">
-                  <div className="text-2xl font-bold">{stat.value}</div>
+                  <div className="text-2xl font-bold">
+                    {loading ? (
+                      <span className="animate-pulse">...</span>
+                    ) : (
+                      stat.value
+                    )}
+                  </div>
                   <div className="bg-primary/10 p-2 rounded-full">
                     {stat.icon}
                   </div>
@@ -191,14 +242,25 @@ const Dashboard = () => {
               <CardTitle>Recent Activity</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {recentActivities.map((item, i) => (
-                  <div key={i} className="flex justify-between items-center pb-4 border-b border-border">
-                    <span>{item.action}</span>
-                    <span className="text-sm text-muted-foreground">{item.date}</span>
-                  </div>
-                ))}
-              </div>
+              {loading ? (
+                <div className="space-y-4">
+                  {[1, 2, 3].map((i) => (
+                    <div key={i} className="flex justify-between items-center pb-4 border-b border-border animate-pulse">
+                      <div className="w-3/4 h-4 bg-secondary rounded"></div>
+                      <div className="w-1/4 h-4 bg-secondary rounded"></div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {recentActivities.map((item, i) => (
+                    <div key={i} className="flex justify-between items-center pb-4 border-b border-border">
+                      <span>{item.action}</span>
+                      <span className="text-sm text-muted-foreground">{item.date}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </CardContent>
           </Card>
           

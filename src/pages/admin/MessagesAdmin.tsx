@@ -7,9 +7,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { MessageSquare, Eye, Trash } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
-  id: number;
+  id: string;
   name: string;
   email: string;
   subject?: string;
@@ -21,62 +22,65 @@ interface Message {
 const MessagesAdmin = () => {
   const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loading, setLoading] = useState(true);
   const [viewMessageDialog, setViewMessageDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
   const [selectedMessage, setSelectedMessage] = useState<Message | null>(null);
 
   useEffect(() => {
-    // Load messages from localStorage
-    const savedMessages = localStorage.getItem("portfolioMessages");
-    if (savedMessages) {
-      setMessages(JSON.parse(savedMessages));
-    } else {
-      // If no messages in localStorage, set default messages
-      const defaultMessages = [
-        {
-          id: 1,
-          name: "John Smith",
-          email: "john@example.com",
-          subject: "Project Inquiry",
-          message: "I'm interested in hiring you for a project. Please contact me when you have a chance.",
-          date: "May 10, 2023",
-          read: false
-        },
-        {
-          id: 2,
-          name: "Sarah Johnson",
-          email: "sarah@example.com",
-          subject: "Collaboration Opportunity",
-          message: "Your portfolio is impressive! I would love to discuss a potential collaboration.",
-          date: "May 5, 2023",
-          read: true
-        },
-        {
-          id: 3,
-          name: "Michael Lee",
-          email: "michael@example.com",
-          subject: "Design Services",
-          message: "Hello, I have a question about your UI/UX design services. What is your typical process?",
-          date: "April 28, 2023",
-          read: true
-        },
-      ];
-      setMessages(defaultMessages);
-      localStorage.setItem("portfolioMessages", JSON.stringify(defaultMessages));
-    }
+    fetchMessages();
   }, []);
 
-  const handleView = (message: Message) => {
+  const fetchMessages = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setMessages(data);
+      }
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleView = async (message: Message) => {
     setSelectedMessage(message);
     setViewMessageDialog(true);
     
     // Mark as read if not already
     if (!message.read) {
-      const updatedMessages = messages.map(m => 
-        m.id === message.id ? { ...m, read: true } : m
-      );
-      setMessages(updatedMessages);
-      localStorage.setItem("portfolioMessages", JSON.stringify(updatedMessages));
+      try {
+        const { error } = await supabase
+          .from('messages')
+          .update({ read: true })
+          .eq('id', message.id);
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Update local state
+        setMessages(prev => 
+          prev.map(m => m.id === message.id ? { ...m, read: true } : m)
+        );
+      } catch (error) {
+        console.error('Error marking message as read:', error);
+      }
     }
   };
 
@@ -85,18 +89,36 @@ const MessagesAdmin = () => {
     setDeleteDialog(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedMessage) {
-      const updatedMessages = messages.filter(m => m.id !== selectedMessage.id);
-      setMessages(updatedMessages);
-      localStorage.setItem("portfolioMessages", JSON.stringify(updatedMessages));
-      
-      toast({
-        title: "Message deleted",
-        description: "The message has been permanently deleted."
-      });
+      try {
+        const { error } = await supabase
+          .from('messages')
+          .delete()
+          .eq('id', selectedMessage.id);
+        
+        if (error) {
+          throw error;
+        }
+        
+        // Update local state
+        setMessages(prev => prev.filter(m => m.id !== selectedMessage.id));
+        
+        toast({
+          title: "Message deleted",
+          description: "The message has been permanently deleted."
+        });
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete message. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
     setDeleteDialog(false);
+    setSelectedMessage(null);
   };
 
   const unreadCount = messages.filter(m => !m.read).length;
@@ -114,7 +136,11 @@ const MessagesAdmin = () => {
         </div>
         
         <div className="bg-card rounded-lg border border-border shadow-sm">
-          {messages.length === 0 ? (
+          {loading ? (
+            <div className="p-8 text-center">
+              <p>Loading messages...</p>
+            </div>
+          ) : messages.length === 0 ? (
             <div className="p-8 text-center">
               <MessageSquare className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No messages</h3>

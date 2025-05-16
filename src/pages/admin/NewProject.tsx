@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import AdminLayout from "@/components/admin/AdminLayout";
+import { supabase } from "@/integrations/supabase/client";
 import { ArrowLeft, Plus, X } from "lucide-react";
 
 const NewProject = () => {
@@ -16,8 +17,8 @@ const NewProject = () => {
     title: "",
     description: "",
     image: "",
-    demoLink: "",
-    githubLink: "",
+    demo_link: "",
+    github_link: "",
   });
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
@@ -41,20 +42,38 @@ const NewProject = () => {
     setTags(tags.filter(tag => tag !== tagToRemove));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Simulate form submission
-    setTimeout(() => {
+    try {
+      const { error } = await supabase.from('projects').insert({
+        title: formData.title,
+        description: formData.description,
+        image: formData.image,
+        tags: tags,
+        demo_link: formData.demo_link,
+        github_link: formData.github_link,
+      });
+      
+      if (error) throw error;
+      
       toast({
         title: "Project added",
         description: "Your new project has been successfully added.",
       });
       
-      setIsSubmitting(false);
       navigate("/admin/projects");
-    }, 1500);
+    } catch (error) {
+      console.error('Error adding project:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add project. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -145,13 +164,13 @@ const NewProject = () => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="demoLink" className="text-sm font-medium">
+            <label htmlFor="demo_link" className="text-sm font-medium">
               Live Demo Link
             </label>
             <Input
-              id="demoLink"
-              name="demoLink"
-              value={formData.demoLink}
+              id="demo_link"
+              name="demo_link"
+              value={formData.demo_link}
               onChange={handleChange}
               placeholder="https://example.com"
               required
@@ -159,13 +178,13 @@ const NewProject = () => {
           </div>
           
           <div className="space-y-2">
-            <label htmlFor="githubLink" className="text-sm font-medium">
+            <label htmlFor="github_link" className="text-sm font-medium">
               GitHub Repository Link
             </label>
             <Input
-              id="githubLink"
-              name="githubLink"
-              value={formData.githubLink}
+              id="github_link"
+              name="github_link"
+              value={formData.github_link}
               onChange={handleChange}
               placeholder="https://github.com/yourusername/repo"
               required

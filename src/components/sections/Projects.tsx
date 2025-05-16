@@ -1,17 +1,20 @@
 
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowRight, Github, Link as LinkIcon } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   image: string;
   tags: string[];
-  demoLink: string;
-  githubLink: string;
+  demo_link: string;
+  github_link: string;
 }
 
 const ProjectCard = ({ project }: { project: Project }) => {
@@ -39,13 +42,13 @@ const ProjectCard = ({ project }: { project: Project }) => {
         <p className="text-muted-foreground mb-4 flex-grow">{project.description}</p>
         <div className="flex gap-4 mt-4">
           <Button asChild variant="outline" size="sm" className="gap-2">
-            <a href={project.demoLink} target="_blank" rel="noopener noreferrer">
+            <a href={project.demo_link} target="_blank" rel="noopener noreferrer">
               <LinkIcon className="h-4 w-4" />
               Demo
             </a>
           </Button>
           <Button asChild variant="outline" size="sm" className="gap-2">
-            <a href={project.githubLink} target="_blank" rel="noopener noreferrer">
+            <a href={project.github_link} target="_blank" rel="noopener noreferrer">
               <Github className="h-4 w-4" />
               Code
             </a>
@@ -57,44 +60,41 @@ const ProjectCard = ({ project }: { project: Project }) => {
 };
 
 const Projects = () => {
-  const projects: Project[] = [
-    {
-      id: 1,
-      title: "E-Commerce Website",
-      description: "A full-featured online store with shopping cart, user authentication, and payment processing.",
-      image: "https://images.unsplash.com/photo-1523289333742-be1143f6b766?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      tags: ["React", "Node.js", "MongoDB"],
-      demoLink: "https://example.com",
-      githubLink: "https://github.com"
-    },
-    {
-      id: 2,
-      title: "Task Management App",
-      description: "A kanban-style project management tool with drag-and-drop features and team collaboration.",
-      image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-      tags: ["TypeScript", "React", "Firebase"],
-      demoLink: "https://example.com",
-      githubLink: "https://github.com"
-    },
-    {
-      id: 3,
-      title: "Weather Dashboard",
-      description: "Real-time weather forecasting application with interactive maps and location services.",
-      image: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-      tags: ["JavaScript", "API", "CSS"],
-      demoLink: "https://example.com",
-      githubLink: "https://github.com"
-    },
-    {
-      id: 4,
-      title: "Social Media Platform",
-      description: "A community platform with profiles, posts, comments, and real-time messaging features.",
-      image: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-      tags: ["React", "GraphQL", "AWS"],
-      demoLink: "https://example.com",
-      githubLink: "https://github.com"
-    },
-  ];
+  const { toast } = useToast();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProjects() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(4);
+        
+        if (error) {
+          throw error;
+        }
+        
+        if (data) {
+          setProjects(data);
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load projects. Please try again later.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchProjects();
+  }, [toast]);
 
   return (
     <section id="projects" className="py-24 section-padding bg-secondary">
@@ -108,11 +108,22 @@ const Projects = () => {
         </div>
         
         <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-8">
-          {projects.map((project) => (
-            <div key={project.id} className="animate-fade-in" style={{ animationDelay: `${project.id * 0.1}s` }}>
-              <ProjectCard project={project} />
+          {loading ? (
+            // Simple loading state
+            Array(4).fill(0).map((_, index) => (
+              <div key={index} className="animate-pulse bg-background h-80 rounded-lg"></div>
+            ))
+          ) : projects.length > 0 ? (
+            projects.map((project, index) => (
+              <div key={project.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
+                <ProjectCard project={project} />
+              </div>
+            ))
+          ) : (
+            <div className="col-span-2 text-center py-10">
+              <p className="text-muted-foreground">No projects found.</p>
             </div>
-          ))}
+          )}
         </div>
         
         <div className="flex justify-center mt-12">

@@ -7,16 +7,17 @@ import { useToast } from "@/components/ui/use-toast";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Plus, Search, Edit, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Project {
-  id: number;
+  id: string;
   title: string;
   description: string;
   image: string;
   tags: string[];
-  demoLink: string;
-  githubLink: string;
-  date?: string;
+  demo_link: string;
+  github_link: string;
+  created_at?: string;
 }
 
 const ProjectsAdmin = () => {
@@ -26,60 +27,39 @@ const ProjectsAdmin = () => {
   const [filteredProjects, setFilteredProjects] = useState<Project[]>([]);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load projects from localStorage or use defaults
-    const savedProjects = localStorage.getItem("portfolioProjects");
-    if (savedProjects) {
-      setProjects(JSON.parse(savedProjects));
-    } else {
-      // Default projects with dates
-      const defaultProjects = [
-        {
-          id: 1,
-          title: "E-Commerce Website",
-          description: "A full-featured online store with shopping cart, user authentication, and payment processing.",
-          image: "https://images.unsplash.com/photo-1523289333742-be1143f6b766?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-          tags: ["React", "Node.js", "MongoDB"],
-          demoLink: "https://example.com",
-          githubLink: "https://github.com",
-          date: "May 15, 2023"
-        },
-        {
-          id: 2,
-          title: "Task Management App",
-          description: "A kanban-style project management tool with drag-and-drop features and team collaboration.",
-          image: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1470&q=80",
-          tags: ["TypeScript", "React", "Firebase"],
-          demoLink: "https://example.com",
-          githubLink: "https://github.com",
-          date: "April 10, 2023"
-        },
-        {
-          id: 3,
-          title: "Weather Dashboard",
-          description: "Real-time weather forecasting application with interactive maps and location services.",
-          image: "https://images.unsplash.com/photo-1504639725590-34d0984388bd?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-          tags: ["JavaScript", "API", "CSS"],
-          demoLink: "https://example.com",
-          githubLink: "https://github.com",
-          date: "March 5, 2023"
-        },
-        {
-          id: 4,
-          title: "Social Media Platform",
-          description: "A community platform with profiles, posts, comments, and real-time messaging features.",
-          image: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80",
-          tags: ["React", "GraphQL", "AWS"],
-          demoLink: "https://example.com",
-          githubLink: "https://github.com",
-          date: "February 20, 2023"
-        },
-      ];
-      setProjects(defaultProjects);
-      localStorage.setItem("portfolioProjects", JSON.stringify(defaultProjects));
-    }
+    fetchProjects();
   }, []);
+
+  const fetchProjects = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data) {
+        setProjects(data);
+        setFilteredProjects(data);
+      }
+    } catch (error) {
+      console.error('Error fetching projects:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load projects. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const results = projects.filter(project =>
@@ -95,16 +75,32 @@ const ProjectsAdmin = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (projectToDelete) {
-      const updatedProjects = projects.filter(project => project.id !== projectToDelete.id);
-      setProjects(updatedProjects);
-      localStorage.setItem("portfolioProjects", JSON.stringify(updatedProjects));
-      
-      toast({
-        title: "Project deleted",
-        description: "The project has been successfully deleted."
-      });
+      try {
+        const { error } = await supabase
+          .from('projects')
+          .delete()
+          .eq('id', projectToDelete.id);
+        
+        if (error) {
+          throw error;
+        }
+        
+        setProjects(prev => prev.filter(p => p.id !== projectToDelete.id));
+        
+        toast({
+          title: "Project deleted",
+          description: "The project has been successfully deleted."
+        });
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete project. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
     setDeleteDialogOpen(false);
     setProjectToDelete(null);
@@ -137,61 +133,69 @@ const ProjectsAdmin = () => {
         </div>
         
         <div className="overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr className="bg-secondary border-b border-border">
-                <th className="p-3 text-left">Image</th>
-                <th className="p-3 text-left">Title</th>
-                <th className="p-3 text-left">Tags</th>
-                <th className="p-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProjects.map((project) => (
-                <tr key={project.id} className="border-b border-border hover:bg-secondary/50">
-                  <td className="p-3">
-                    <div className="w-16 h-16 rounded overflow-hidden">
-                      <img src={project.image} alt={project.title} className="w-full h-full object-cover" />
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="font-medium">{project.title}</div>
-                    <div className="text-sm text-muted-foreground truncate max-w-xs">{project.description}</div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex flex-wrap gap-1">
-                      {project.tags.map((tag, index) => (
-                        <span key={index} className="text-xs px-2 py-1 bg-secondary rounded-full">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
-                      <Link to={`/admin/projects/edit/${project.id}`}>
-                        <Button variant="ghost" size="sm">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handleDeleteClick(project)}
-                      >
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          
-          {filteredProjects.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No projects found. Try adjusting your search.
+          {loading ? (
+            <div className="text-center py-8">
+              <p>Loading projects...</p>
             </div>
+          ) : (
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="bg-secondary border-b border-border">
+                  <th className="p-3 text-left">Image</th>
+                  <th className="p-3 text-left">Title</th>
+                  <th className="p-3 text-left">Tags</th>
+                  <th className="p-3 text-left">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredProjects.length === 0 ? (
+                  <tr>
+                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                      No projects found. Try adjusting your search or add a new project.
+                    </td>
+                  </tr>
+                ) : (
+                  filteredProjects.map((project) => (
+                    <tr key={project.id} className="border-b border-border hover:bg-secondary/50">
+                      <td className="p-3">
+                        <div className="w-16 h-16 rounded overflow-hidden">
+                          <img src={project.image} alt={project.title} className="w-full h-full object-cover" />
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="font-medium">{project.title}</div>
+                        <div className="text-sm text-muted-foreground truncate max-w-xs">{project.description}</div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex flex-wrap gap-1">
+                          {project.tags.map((tag, index) => (
+                            <span key={index} className="text-xs px-2 py-1 bg-secondary rounded-full">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                      <td className="p-3">
+                        <div className="flex gap-2">
+                          <Link to={`/admin/projects/edit/${project.id}`}>
+                            <Button variant="ghost" size="sm">
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleDeleteClick(project)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
           )}
         </div>
 

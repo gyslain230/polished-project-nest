@@ -5,8 +5,8 @@ import { useForm } from "react-hook-form";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Form,
   FormControl,
@@ -39,22 +39,18 @@ const NewCertificate = () => {
     }
   });
 
-  const onSubmit = (data: CertificateFormData) => {
+  const onSubmit = async (data: CertificateFormData) => {
     setIsSubmitting(true);
 
     try {
-      // Fetch existing certificates or start with empty array
-      const existingCertificates = JSON.parse(localStorage.getItem("portfolioCertificates") || "[]");
-      
-      // Create new certificate with unique ID
-      const newCertificate = {
-        id: Date.now(),
-        ...data,
-      };
-      
-      // Add to array and save back to localStorage
-      const updatedCertificates = [...existingCertificates, newCertificate];
-      localStorage.setItem("portfolioCertificates", JSON.stringify(updatedCertificates));
+      const { error } = await supabase.from('certificates').insert({
+        title: data.title,
+        issuer: data.issuer,
+        date: data.date,
+        image: data.image,
+      });
+
+      if (error) throw error;
       
       toast({
         title: "Certificate added",

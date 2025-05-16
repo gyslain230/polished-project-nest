@@ -6,46 +6,70 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { User } from "lucide-react";
 
 interface Profile {
+  id?: string;
   name: string;
   role: string;
-  profileImage: string;
-  bio: string;
-  location: string;
-  email: string;
-  socialLinks: {
-    github: string;
-    linkedin: string;
-    twitter: string;
-  };
+  profile_image: string;
+  bio: string | null;
+  location: string | null;
+  email: string | null;
+  github: string | null;
+  linkedin: string | null;
+  twitter: string | null;
 }
 
 const ProfileAdmin = () => {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [profile, setProfile] = useState<Profile>({
-    name: "John Doe",
-    role: "Full Stack Developer",
-    profileImage: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1160&q=80",
-    bio: "Passionate developer with expertise in React, Node.js, and modern web technologies. I love building intuitive user interfaces and scalable backend solutions.",
-    location: "San Francisco, CA",
-    email: "john.doe@example.com",
-    socialLinks: {
-      github: "https://github.com/johndoe",
-      linkedin: "https://linkedin.com/in/johndoe",
-      twitter: "https://twitter.com/johndoe",
-    },
+    name: "",
+    role: "",
+    profile_image: "",
+    bio: "",
+    location: "",
+    email: "",
+    github: "",
+    linkedin: "",
+    twitter: "",
   });
 
-  // On component mount, try to load profile data from localStorage
   useEffect(() => {
-    const savedProfile = localStorage.getItem("portfolioProfile");
-    if (savedProfile) {
-      setProfile(JSON.parse(savedProfile));
-    }
+    fetchProfile();
   }, []);
+
+  const fetchProfile = async () => {
+    try {
+      setIsFetching(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .limit(1)
+        .single();
+      
+      if (error && error.code !== 'PGRST116') {
+        // PGRST116 is the error code for "no rows returned"
+        throw error;
+      }
+      
+      if (data) {
+        setProfile(data);
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile data. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -56,10 +80,7 @@ const ProfileAdmin = () => {
       if (parent === "socialLinks") {
         setProfile(prev => ({
           ...prev,
-          socialLinks: {
-            ...prev.socialLinks,
-            [child]: value
-          }
+          [child]: value
         }));
       }
     } else {
@@ -70,23 +91,79 @@ const ProfileAdmin = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Simulate API call delay
-    setTimeout(() => {
-      // Save to localStorage
-      localStorage.setItem("portfolioProfile", JSON.stringify(profile));
+    try {
+      let result;
+      
+      if (profile.id) {
+        // Update existing profile
+        result = await supabase
+          .from('profiles')
+          .update({
+            name: profile.name,
+            role: profile.role,
+            profile_image: profile.profile_image,
+            bio: profile.bio,
+            location: profile.location,
+            email: profile.email,
+            github: profile.github,
+            linkedin: profile.linkedin,
+            twitter: profile.twitter,
+          })
+          .eq('id', profile.id);
+      } else {
+        // Insert new profile
+        result = await supabase
+          .from('profiles')
+          .insert({
+            name: profile.name,
+            role: profile.role,
+            profile_image: profile.profile_image,
+            bio: profile.bio,
+            location: profile.location,
+            email: profile.email,
+            github: profile.github,
+            linkedin: profile.linkedin,
+            twitter: profile.twitter,
+          })
+          .select();
+          
+        // Update local state with the new ID
+        if (result.data && result.data[0]) {
+          setProfile(prev => ({ ...prev, id: result.data[0].id }));
+        }
+      }
+      
+      if (result.error) throw result.error;
       
       toast({
         title: "Profile updated",
         description: "Your profile information has been updated successfully."
       });
-      
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again later.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
+
+  if (isFetching) {
+    return (
+      <AdminLayout>
+        <div className="p-6 text-center">
+          <p>Loading profile information...</p>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -100,8 +177,8 @@ const ProfileAdmin = () => {
             <div className="flex flex-col md:flex-row gap-6 mb-6">
               <div className="flex flex-col items-center gap-3">
                 <Avatar className="h-24 w-24">
-                  {profile.profileImage ? (
-                    <AvatarImage src={profile.profileImage} alt={profile.name} />
+                  {profile.profile_image ? (
+                    <AvatarImage src={profile.profile_image} alt={profile.name} />
                   ) : (
                     <AvatarFallback>
                       <User className="h-12 w-12" />
@@ -112,13 +189,13 @@ const ProfileAdmin = () => {
               
               <div className="flex-1 space-y-4">
                 <div>
-                  <label htmlFor="profileImage" className="block text-sm font-medium mb-1">
+                  <label htmlFor="profile_image" className="block text-sm font-medium mb-1">
                     Profile Image URL
                   </label>
                   <Input
-                    id="profileImage"
-                    name="profileImage"
-                    value={profile.profileImage}
+                    id="profile_image"
+                    name="profile_image"
+                    value={profile.profile_image || ""}
                     onChange={handleChange}
                     placeholder="https://example.com/your-image.jpg"
                   />
@@ -152,6 +229,7 @@ const ProfileAdmin = () => {
                       value={profile.role}
                       onChange={handleChange}
                       placeholder="e.g. Full Stack Developer"
+                      required
                     />
                   </div>
                 </div>
@@ -167,7 +245,7 @@ const ProfileAdmin = () => {
                   id="email"
                   name="email"
                   type="email"
-                  value={profile.email}
+                  value={profile.email || ""}
                   onChange={handleChange}
                   placeholder="your.email@example.com"
                 />
@@ -180,7 +258,7 @@ const ProfileAdmin = () => {
                 <Input
                   id="location"
                   name="location"
-                  value={profile.location}
+                  value={profile.location || ""}
                   onChange={handleChange}
                   placeholder="City, Country"
                 />
@@ -194,7 +272,7 @@ const ProfileAdmin = () => {
               <Textarea
                 id="bio"
                 name="bio"
-                value={profile.bio}
+                value={profile.bio || ""}
                 onChange={handleChange}
                 placeholder="A brief description about yourself"
                 rows={4}
@@ -212,8 +290,8 @@ const ProfileAdmin = () => {
                 </label>
                 <Input
                   id="github"
-                  name="socialLinks.github"
-                  value={profile.socialLinks.github}
+                  name="github"
+                  value={profile.github || ""}
                   onChange={handleChange}
                   placeholder="https://github.com/yourusername"
                 />
@@ -225,8 +303,8 @@ const ProfileAdmin = () => {
                 </label>
                 <Input
                   id="linkedin"
-                  name="socialLinks.linkedin"
-                  value={profile.socialLinks.linkedin}
+                  name="linkedin"
+                  value={profile.linkedin || ""}
                   onChange={handleChange}
                   placeholder="https://linkedin.com/in/yourusername"
                 />
@@ -238,8 +316,8 @@ const ProfileAdmin = () => {
                 </label>
                 <Input
                   id="twitter"
-                  name="socialLinks.twitter"
-                  value={profile.socialLinks.twitter}
+                  name="twitter"
+                  value={profile.twitter || ""}
                   onChange={handleChange}
                   placeholder="https://twitter.com/yourusername"
                 />

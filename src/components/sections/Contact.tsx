@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -21,37 +22,30 @@ const Contact = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     
-    // Create a new message object
-    const newMessage = {
-      id: Date.now(),
-      name: formData.name,
-      email: formData.email,
-      subject: formData.subject,
-      message: formData.message,
-      date: new Date().toLocaleDateString('en-US', { 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      }),
-      read: false
-    };
+    // Format the date
+    const formattedDate = new Date().toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
     
-    // Get existing messages from localStorage
-    const existingMessages = localStorage.getItem("portfolioMessages");
-    const messagesArray = existingMessages ? JSON.parse(existingMessages) : [];
-    
-    // Add new message to the beginning of the array
-    messagesArray.unshift(newMessage);
-    
-    // Save updated messages to localStorage
-    localStorage.setItem("portfolioMessages", JSON.stringify(messagesArray));
-    
-    // Simulate form submission delay
-    setTimeout(() => {
+    try {
+      // Save to Supabase
+      const { error } = await supabase.from('messages').insert({
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+        date: formattedDate,
+        read: false
+      });
+      
+      if (error) throw error;
+      
       toast({
         title: "Message sent!",
         description: "Thank you for your message. I'll get back to you soon.",
@@ -63,9 +57,16 @@ const Contact = () => {
         subject: "",
         message: ""
       });
-      
+    } catch (error) {
+      console.error("Error sending message:", error);
+      toast({
+        title: "Error",
+        description: "Failed to send message. Please try again later.",
+        variant: "destructive"
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
 
   return (
