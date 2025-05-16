@@ -143,14 +143,14 @@ const CertificatesAdmin = () => {
                     <TableCell>{certificate.date}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          as={Link} 
-                          to={`/admin/certificates/edit/${certificate.id}`}
-                        >
-                          <Pen className="h-4 w-4" />
-                        </Button>
+                        <Link to={`/admin/certificates/edit/${certificate.id}`}>
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                          >
+                            <Pen className="h-4 w-4" />
+                          </Button>
+                        </Link>
                         <Button 
                           variant="ghost" 
                           size="icon" 
