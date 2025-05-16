@@ -17,6 +17,7 @@ interface Message {
   message: string;
   date: string;
   read: boolean;
+  created_at: string;
 }
 
 const MessagesAdmin = () => {
@@ -44,7 +45,17 @@ const MessagesAdmin = () => {
       }
       
       if (data) {
-        setMessages(data);
+        // Ensure each message has a date field, fallback to created_at if not present
+        const messagesWithDate = data.map(msg => ({
+          ...msg,
+          date: msg.date || new Date(msg.created_at).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+          })
+        }));
+        
+        setMessages(messagesWithDate);
       }
     } catch (error) {
       console.error('Error fetching messages:', error);
