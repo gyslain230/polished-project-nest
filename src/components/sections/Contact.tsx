@@ -49,11 +49,10 @@ const Contact = () => {
       
       console.log("Submitting message to Supabase:", messageData);
       
-      // Save to Supabase with anonymous insert access
-      const { error, data } = await supabase
+      // Insert message without using .select() first to avoid potential RLS issues
+      const { error } = await supabase
         .from('messages')
-        .insert(messageData)
-        .select();
+        .insert(messageData);
       
       if (error) {
         console.error("Supabase error:", error);
@@ -61,7 +60,7 @@ const Contact = () => {
         throw error;
       }
       
-      console.log("Message saved successfully:", data);
+      console.log("Message saved successfully");
       
       toast({
         title: "Message sent!",
