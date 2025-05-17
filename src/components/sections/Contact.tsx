@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -16,6 +17,7 @@ const Contact = () => {
     message: ""
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -25,6 +27,7 @@ const Contact = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setSubmitError(null);
     
     // Format the date consistently with how we display it
     const formattedDate = new Date().toLocaleDateString('en-US', { 
@@ -43,7 +46,7 @@ const Contact = () => {
         read: false
       });
       
-      // Save to Supabase
+      // Save to Supabase with anonymous insert access
       const { error, data } = await supabase.from('messages').insert({
         name: formData.name,
         email: formData.email,
@@ -55,6 +58,7 @@ const Contact = () => {
       
       if (error) {
         console.error("Supabase error:", error);
+        setSubmitError(error.message);
         throw error;
       }
       
@@ -95,6 +99,7 @@ const Contact = () => {
         </div>
         
         <div className="grid md:grid-cols-2 gap-12">
+          {/* Left column */}
           <div className="animate-slide-in">
             <div className="flex items-center gap-4 mb-8">
               <div className="bg-primary/20 p-4 rounded-full">
@@ -123,6 +128,15 @@ const Contact = () => {
           </div>
           
           <div className="animate-slide-in" style={{ animationDelay: "0.2s" }}>
+            {submitError && (
+              <Alert variant="destructive" className="mb-6">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>
+                  {submitError}. Please try again or contact me directly via email.
+                </AlertDescription>
+              </Alert>
+            )}
+            
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-2">
