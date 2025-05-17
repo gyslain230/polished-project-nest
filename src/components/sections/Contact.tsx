@@ -29,32 +29,31 @@ const Contact = () => {
     setIsSubmitting(true);
     setSubmitError(null);
     
-    // Format the date consistently with how we display it
-    const formattedDate = new Date().toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
-    });
-    
     try {
-      console.log("Submitting message to Supabase:", {
-        name: formData.name,
-        email: formData.email,
-        subject: formData.subject,
-        message: formData.message,
-        date: formattedDate,
-        read: false
+      // Format the date consistently
+      const formattedDate = new Date().toLocaleDateString('en-US', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
       });
       
-      // Save to Supabase with anonymous insert access
-      const { error, data } = await supabase.from('messages').insert({
+      // Prepare message data
+      const messageData = {
         name: formData.name,
         email: formData.email,
         subject: formData.subject,
         message: formData.message,
         date: formattedDate,
         read: false
-      }).select();
+      };
+      
+      console.log("Submitting message to Supabase:", messageData);
+      
+      // Save to Supabase with anonymous insert access
+      const { error, data } = await supabase
+        .from('messages')
+        .insert(messageData)
+        .select();
       
       if (error) {
         console.error("Supabase error:", error);
@@ -69,6 +68,7 @@ const Contact = () => {
         description: "Thank you for your message. I'll get back to you soon.",
       });
       
+      // Reset form after successful submission
       setFormData({
         name: "",
         email: "",
@@ -77,6 +77,8 @@ const Contact = () => {
       });
     } catch (error) {
       console.error("Error sending message:", error);
+      
+      // Show detailed toast error
       toast({
         title: "Error",
         description: "Failed to send message. Please try again later.",
