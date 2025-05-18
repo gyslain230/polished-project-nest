@@ -20,6 +20,7 @@ const About = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        setIsLoading(true);
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
@@ -32,6 +33,7 @@ const About = () => {
         
         if (data) {
           setProfile(data);
+          console.log("Profile data fetched:", data);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
