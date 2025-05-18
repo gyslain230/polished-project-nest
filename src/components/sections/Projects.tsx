@@ -1,7 +1,6 @@
 
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
-import { ArrowRight, Github, Link as LinkIcon } from "lucide-react";
+import { ArrowRight, Github, Link as LinkIcon, ChevronDown, ChevronUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -63,6 +62,7 @@ const Projects = () => {
   const { toast } = useToast();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAllProjects, setShowAllProjects] = useState(false);
 
   useEffect(() => {
     async function fetchProjects() {
@@ -71,8 +71,7 @@ const Projects = () => {
         const { data, error } = await supabase
           .from('projects')
           .select('*')
-          .order('created_at', { ascending: false })
-          .limit(4);
+          .order('created_at', { ascending: false });
         
         if (error) {
           throw error;
@@ -96,6 +95,9 @@ const Projects = () => {
     fetchProjects();
   }, [toast]);
 
+  // Display only 4 projects initially, or all if expanded
+  const displayedProjects = showAllProjects ? projects : projects.slice(0, 4);
+
   return (
     <section id="projects" className="py-24 section-padding bg-secondary">
       <div className="container mx-auto">
@@ -113,8 +115,8 @@ const Projects = () => {
             Array(4).fill(0).map((_, index) => (
               <div key={index} className="animate-pulse bg-background h-80 rounded-lg"></div>
             ))
-          ) : projects.length > 0 ? (
-            projects.map((project, index) => (
+          ) : displayedProjects.length > 0 ? (
+            displayedProjects.map((project, index) => (
               <div key={project.id} className="animate-fade-in" style={{ animationDelay: `${index * 0.1}s` }}>
                 <ProjectCard project={project} />
               </div>
@@ -127,12 +129,24 @@ const Projects = () => {
         </div>
         
         <div className="flex justify-center mt-12">
-          <Link to="/admin/projects">
-            <Button className="gap-2">
-              View All Projects
-              <ArrowRight className="h-4 w-4" />
+          {projects.length > 4 && (
+            <Button 
+              className="gap-2"
+              onClick={() => setShowAllProjects(!showAllProjects)}
+            >
+              {showAllProjects ? (
+                <>
+                  Show Less
+                  <ChevronUp className="h-4 w-4" />
+                </>
+              ) : (
+                <>
+                  View All Projects
+                  <ChevronDown className="h-4 w-4" />
+                </>
+              )}
             </Button>
-          </Link>
+          )}
         </div>
       </div>
     </section>

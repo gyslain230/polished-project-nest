@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { useProfileData } from "@/hooks/useProfileData";
 import PersonalInfoForm from "@/components/admin/profile/PersonalInfoForm";
 import SocialLinksForm from "@/components/admin/profile/SocialLinksForm";
+import SkillsForm from "@/components/admin/profile/SkillsForm";
 
 const ProfileAdmin = () => {
-  const { profile, isLoading, isFetching, handleChange, saveProfile } = useProfileData();
+  const { profile, isLoading, isFetching, handleChange, handleSkillsChange, saveProfile } = useProfileData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,6 +33,7 @@ const ProfileAdmin = () => {
         <form onSubmit={handleSubmit} className="max-w-3xl space-y-8">
           <PersonalInfoForm profile={profile} handleChange={handleChange} />
           <SocialLinksForm profile={profile} handleChange={handleChange} />
+          <SkillsForm profile={profile} handleSkillsChange={handleSkillsChange} />
           
           <div className="flex justify-end">
             <Button type="submit" disabled={isLoading}>

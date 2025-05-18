@@ -14,6 +14,7 @@ export interface Profile {
   github: string | null;
   linkedin: string | null;
   twitter: string | null;
+  skills: string[] | null;
 }
 
 export const useProfileData = () => {
@@ -81,6 +82,14 @@ export const useProfileData = () => {
     }
   };
 
+  // Add a new function to handle skills updates
+  const handleSkillsChange = (skills: string[]) => {
+    setProfile(prev => ({
+      ...prev,
+      skills
+    }));
+  };
+
   const saveProfile = async () => {
     setIsLoading(true);
     
@@ -101,6 +110,7 @@ export const useProfileData = () => {
             github: profile.github,
             linkedin: profile.linkedin,
             twitter: profile.twitter,
+            skills: profile.skills,
           })
           .eq('id', profile.id);
       } else {
@@ -117,6 +127,7 @@ export const useProfileData = () => {
             github: profile.github,
             linkedin: profile.linkedin,
             twitter: profile.twitter,
+            skills: profile.skills,
           })
           .select();
           
@@ -157,6 +168,7 @@ export const useProfileData = () => {
     isLoading,
     isFetching,
     handleChange,
+    handleSkillsChange,
     saveProfile,
   };
 };

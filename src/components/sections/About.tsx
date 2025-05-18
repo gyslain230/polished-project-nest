@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Book, Calendar, User, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,6 +13,7 @@ interface Profile {
   github: string | null;
   linkedin: string | null;
   twitter: string | null;
+  skills: string[] | null;
 }
 
 const About = () => {
@@ -48,8 +48,8 @@ const About = () => {
     fetchProfile();
   }, []);
 
-  // Skills to display based on profile data or defaults
-  const skills = ["JavaScript", "React", "Node.js", "TypeScript", "MongoDB", "TailwindCSS"];
+  // Use skills from profile or defaults if not available
+  const skills = profile?.skills || ["JavaScript", "React", "Node.js", "TypeScript", "MongoDB", "TailwindCSS"];
 
   return (
     <section id="about" className="py-24 section-padding bg-secondary">
@@ -163,9 +163,9 @@ const About = () => {
             </div>
             
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
-              {skills.map((skill) => (
+              {skills.map((skill, index) => (
                 <div 
-                  key={skill}
+                  key={index}
                   className="bg-background px-4 py-2 rounded-full text-center border border-border"
                 >
                   {skill}
