@@ -28,11 +28,14 @@ const About = () => {
           let parsedSkillPercentages: SkillPercentage[] = [];
           
           if (data.skill_percentages) {
-            // Handle different types that might come from the database
+            // Validate and convert data from Json to SkillPercentage[]
             if (Array.isArray(data.skill_percentages)) {
-              parsedSkillPercentages = data.skill_percentages as SkillPercentage[];
+              parsedSkillPercentages = data.skill_percentages.map((item: any) => ({
+                name: typeof item.name === 'string' ? item.name : '',
+                percentage: typeof item.percentage === 'number' ? item.percentage : 0
+              }));
             } else if (typeof data.skill_percentages === 'object' && data.skill_percentages !== null) {
-              // If it's an object but not an array, convert it to our expected format
+              // If it's an object but not an array, convert it
               parsedSkillPercentages = Object.entries(data.skill_percentages).map(
                 ([name, percentage]) => ({
                   name,
@@ -42,7 +45,7 @@ const About = () => {
             }
           }
           
-          // Ensure skills and skill_percentages are defined even if they're not in the database response
+          // Ensure skills and skill_percentages are defined
           const profileWithDefaults: Profile = {
             ...data,
             skills: data.skills || [],

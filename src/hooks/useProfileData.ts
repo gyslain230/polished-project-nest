@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -57,15 +56,18 @@ export const useProfileData = () => {
       }
       
       if (data) {
-        // Parse the skill_percentages JSON from the database to our SkillPercentage type
+        // Parse the skill_percentages JSON from the database
         let parsedSkillPercentages: SkillPercentage[] = [];
         
         if (data.skill_percentages) {
-          // Handle different types that might come from the database
+          // Validate and convert from Json to SkillPercentage[]
           if (Array.isArray(data.skill_percentages)) {
-            parsedSkillPercentages = data.skill_percentages as SkillPercentage[];
+            parsedSkillPercentages = data.skill_percentages.map((item: any) => ({
+              name: typeof item.name === 'string' ? item.name : '',
+              percentage: typeof item.percentage === 'number' ? item.percentage : 0
+            }));
           } else if (typeof data.skill_percentages === 'object' && data.skill_percentages !== null) {
-            // If it's an object but not an array, convert it to our expected format
+            // Handle object format if it comes in that way
             parsedSkillPercentages = Object.entries(data.skill_percentages).map(
               ([name, percentage]) => ({
                 name,
@@ -75,7 +77,7 @@ export const useProfileData = () => {
           }
         }
         
-        // Ensure skills and skill_percentages are defined even if not in the database response
+        // Create profile with the parsed data
         const profileWithDefaults: Profile = {
           ...data,
           skills: data.skills || [],
@@ -124,7 +126,7 @@ export const useProfileData = () => {
     }));
   };
 
-  // Add a new function to handle skill percentages updates
+  // Handle skill percentages updates
   const handleSkillPercentagesChange = (skill_percentages: SkillPercentage[]) => {
     setProfile(prev => ({
       ...prev,
@@ -136,8 +138,7 @@ export const useProfileData = () => {
     setIsLoading(true);
     
     try {
-      // Convert SkillPercentage[] to a format that Supabase can store as jsonb
-      // We'll store it as an array of objects which is compatible with jsonb
+      // Prepare the skill percentages for storage
       const skill_percentages_for_db = profile.skill_percentages || [];
       
       let result;
@@ -157,6 +158,7 @@ export const useProfileData = () => {
             linkedin: profile.linkedin,
             twitter: profile.twitter,
             skills: profile.skills,
+            // Convert SkillPercentage[] to Json type for database storage
             skill_percentages: skill_percentages_for_db as unknown as Json,
           })
           .eq('id', profile.id);
@@ -175,6 +177,7 @@ export const useProfileData = () => {
             linkedin: profile.linkedin,
             twitter: profile.twitter,
             skills: profile.skills,
+            // Convert SkillPercentage[] to Json type for database storage
             skill_percentages: skill_percentages_for_db as unknown as Json,
           })
           .select();
