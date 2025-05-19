@@ -1,27 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Json } from "@/integrations/supabase/types";
+import { Profile, SkillPercentage } from "@/types/profile";
+import { fetchProfileData, saveProfileData } from "@/services/profileService";
 
-export interface SkillPercentage {
-  name: string;
-  percentage: number;
-}
-
-export interface Profile {
-  id?: string;
-  name: string;
-  role: string;
-  profile_image: string;
-  bio: string | null;
-  location: string | null;
-  email: string | null;
-  github: string | null;
-  linkedin: string | null;
-  twitter: string | null;
-  skills: string[] | null;
-  skill_percentages?: SkillPercentage[] | null;
-}
+export { Profile, SkillPercentage } from "@/types/profile";
 
 export const useProfileData = () => {
   const { toast } = useToast();
@@ -44,47 +27,10 @@ export const useProfileData = () => {
   const fetchProfile = async () => {
     try {
       setIsFetching(true);
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .limit(1)
-        .single();
-      
-      if (error && error.code !== 'PGRST116') {
-        // PGRST116 is the error code for "no rows returned"
-        throw error;
-      }
+      const data = await fetchProfileData();
       
       if (data) {
-        // Parse the skill_percentages JSON from the database
-        let parsedSkillPercentages: SkillPercentage[] = [];
-        
-        if (data.skill_percentages) {
-          // Validate and convert from Json to SkillPercentage[]
-          if (Array.isArray(data.skill_percentages)) {
-            parsedSkillPercentages = data.skill_percentages.map((item: any) => ({
-              name: typeof item.name === 'string' ? item.name : '',
-              percentage: typeof item.percentage === 'number' ? item.percentage : 0
-            }));
-          } else if (typeof data.skill_percentages === 'object' && data.skill_percentages !== null) {
-            // Handle object format if it comes in that way
-            parsedSkillPercentages = Object.entries(data.skill_percentages).map(
-              ([name, percentage]) => ({
-                name,
-                percentage: typeof percentage === 'number' ? percentage : 0
-              })
-            );
-          }
-        }
-        
-        // Create profile with the parsed data
-        const profileWithDefaults: Profile = {
-          ...data,
-          skills: data.skills || [],
-          skill_percentages: parsedSkillPercentages
-        };
-        
-        setProfile(profileWithDefaults);
+        setProfile(data);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -138,57 +84,12 @@ export const useProfileData = () => {
     setIsLoading(true);
     
     try {
-      // Prepare the skill percentages for storage
-      const skill_percentages_for_db = profile.skill_percentages || [];
+      const success = await saveProfileData(profile);
       
-      let result;
-      
-      if (profile.id) {
-        // Update existing profile
-        result = await supabase
-          .from('profiles')
-          .update({
-            name: profile.name,
-            role: profile.role,
-            profile_image: profile.profile_image,
-            bio: profile.bio,
-            location: profile.location,
-            email: profile.email,
-            github: profile.github,
-            linkedin: profile.linkedin,
-            twitter: profile.twitter,
-            skills: profile.skills,
-            // Convert SkillPercentage[] to Json type for database storage
-            skill_percentages: skill_percentages_for_db as unknown as Json,
-          })
-          .eq('id', profile.id);
-      } else {
-        // Insert new profile
-        result = await supabase
-          .from('profiles')
-          .insert({
-            name: profile.name,
-            role: profile.role,
-            profile_image: profile.profile_image,
-            bio: profile.bio,
-            location: profile.location,
-            email: profile.email,
-            github: profile.github,
-            linkedin: profile.linkedin,
-            twitter: profile.twitter,
-            skills: profile.skills,
-            // Convert SkillPercentage[] to Json type for database storage
-            skill_percentages: skill_percentages_for_db as unknown as Json,
-          })
-          .select();
-          
-        // Update local state with the new ID
-        if (result.data && result.data[0]) {
-          setProfile(prev => ({ ...prev, id: result.data[0].id }));
-        }
+      // If it's a new profile, update the local state with the ID
+      if (success && !profile.id && profile.id) {
+        setProfile(prev => ({ ...prev, id: profile.id }));
       }
-      
-      if (result.error) throw result.error;
       
       toast({
         title: "Profile updated",

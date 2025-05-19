@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ProfileBio from "./about/ProfileBio";
 import AboutSkills from "./about/AboutSkills";
-import { Profile, SkillPercentage } from "@/hooks/useProfileData";
+import { Profile, parseSkillPercentages } from "@/types/profile";
 
 const About = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -24,26 +24,8 @@ const About = () => {
         }
         
         if (data) {
-          // Parse skill_percentages from the database
-          let parsedSkillPercentages: SkillPercentage[] = [];
-          
-          if (data.skill_percentages) {
-            // Validate and convert data from Json to SkillPercentage[]
-            if (Array.isArray(data.skill_percentages)) {
-              parsedSkillPercentages = data.skill_percentages.map((item: any) => ({
-                name: typeof item.name === 'string' ? item.name : '',
-                percentage: typeof item.percentage === 'number' ? item.percentage : 0
-              }));
-            } else if (typeof data.skill_percentages === 'object' && data.skill_percentages !== null) {
-              // If it's an object but not an array, convert it
-              parsedSkillPercentages = Object.entries(data.skill_percentages).map(
-                ([name, percentage]) => ({
-                  name,
-                  percentage: typeof percentage === 'number' ? percentage : 0
-                })
-              );
-            }
-          }
+          // Parse skill_percentages from the database using our utility function
+          const parsedSkillPercentages = parseSkillPercentages(data.skill_percentages);
           
           // Ensure skills and skill_percentages are defined
           const profileWithDefaults: Profile = {
