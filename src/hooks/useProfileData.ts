@@ -31,6 +31,7 @@ export const useProfileData = () => {
     github: "",
     linkedin: "",
     twitter: "",
+    skills: [],
   });
 
   const fetchProfile = async () => {
@@ -48,7 +49,7 @@ export const useProfileData = () => {
       }
       
       if (data) {
-        setProfile(data);
+        setProfile(data as Profile);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
