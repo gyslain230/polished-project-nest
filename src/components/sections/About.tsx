@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import ProfileBio from "./about/ProfileBio";
 import AboutSkills from "./about/AboutSkills";
-import { Profile } from "@/hooks/useProfileData";
+import { Profile, SkillPercentage } from "@/hooks/useProfileData";
 
 const About = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -24,12 +24,30 @@ const About = () => {
         }
         
         if (data) {
+          // Parse skill_percentages from the database
+          let parsedSkillPercentages: SkillPercentage[] = [];
+          
+          if (data.skill_percentages) {
+            // Handle different types that might come from the database
+            if (Array.isArray(data.skill_percentages)) {
+              parsedSkillPercentages = data.skill_percentages as SkillPercentage[];
+            } else if (typeof data.skill_percentages === 'object' && data.skill_percentages !== null) {
+              // If it's an object but not an array, convert it to our expected format
+              parsedSkillPercentages = Object.entries(data.skill_percentages).map(
+                ([name, percentage]) => ({
+                  name,
+                  percentage: typeof percentage === 'number' ? percentage : 0
+                })
+              );
+            }
+          }
+          
           // Ensure skills and skill_percentages are defined even if they're not in the database response
-          const profileWithDefaults = {
+          const profileWithDefaults: Profile = {
             ...data,
             skills: data.skills || [],
-            skill_percentages: data.skill_percentages || []
-          } as Profile;
+            skill_percentages: parsedSkillPercentages
+          };
           
           setProfile(profileWithDefaults);
           console.log("Profile data fetched:", profileWithDefaults);

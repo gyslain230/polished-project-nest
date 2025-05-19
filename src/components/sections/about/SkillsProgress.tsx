@@ -7,7 +7,7 @@ interface SkillsProgressProps {
   skillPercentages?: SkillPercentage[] | null;
 }
 
-const SkillsProgress = ({ skillPercentages = [] }: SkillsProgressProps) => {
+const SkillsProgress = ({ skillPercentages }: SkillsProgressProps) => {
   // Default skills if none are provided
   const displaySkills = skillPercentages && skillPercentages.length > 0 
     ? skillPercentages

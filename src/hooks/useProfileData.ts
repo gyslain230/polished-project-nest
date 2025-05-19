@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Json } from "@/integrations/supabase/types";
 
 export interface SkillPercentage {
   name: string;
@@ -56,12 +57,30 @@ export const useProfileData = () => {
       }
       
       if (data) {
+        // Parse the skill_percentages JSON from the database to our SkillPercentage type
+        let parsedSkillPercentages: SkillPercentage[] = [];
+        
+        if (data.skill_percentages) {
+          // Handle different types that might come from the database
+          if (Array.isArray(data.skill_percentages)) {
+            parsedSkillPercentages = data.skill_percentages as SkillPercentage[];
+          } else if (typeof data.skill_percentages === 'object' && data.skill_percentages !== null) {
+            // If it's an object but not an array, convert it to our expected format
+            parsedSkillPercentages = Object.entries(data.skill_percentages).map(
+              ([name, percentage]) => ({
+                name,
+                percentage: typeof percentage === 'number' ? percentage : 0
+              })
+            );
+          }
+        }
+        
         // Ensure skills and skill_percentages are defined even if not in the database response
-        const profileWithDefaults = {
+        const profileWithDefaults: Profile = {
           ...data,
           skills: data.skills || [],
-          skill_percentages: data.skill_percentages || []
-        } as Profile;
+          skill_percentages: parsedSkillPercentages
+        };
         
         setProfile(profileWithDefaults);
       }
@@ -117,6 +136,10 @@ export const useProfileData = () => {
     setIsLoading(true);
     
     try {
+      // Convert SkillPercentage[] to a format that Supabase can store as jsonb
+      // We'll store it as an array of objects which is compatible with jsonb
+      const skill_percentages_for_db = profile.skill_percentages || [];
+      
       let result;
       
       if (profile.id) {
@@ -134,7 +157,7 @@ export const useProfileData = () => {
             linkedin: profile.linkedin,
             twitter: profile.twitter,
             skills: profile.skills,
-            skill_percentages: profile.skill_percentages,
+            skill_percentages: skill_percentages_for_db as unknown as Json,
           })
           .eq('id', profile.id);
       } else {
@@ -152,7 +175,7 @@ export const useProfileData = () => {
             linkedin: profile.linkedin,
             twitter: profile.twitter,
             skills: profile.skills,
-            skill_percentages: profile.skill_percentages,
+            skill_percentages: skill_percentages_for_db as unknown as Json,
           })
           .select();
           
