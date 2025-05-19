@@ -49,7 +49,13 @@ export const useProfileData = () => {
       }
       
       if (data) {
-        setProfile(data as Profile);
+        // Ensure skills is defined even if it's not in the database response
+        const profileWithSkills = {
+          ...data,
+          skills: data.skills || []
+        } as Profile;
+        
+        setProfile(profileWithSkills);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
