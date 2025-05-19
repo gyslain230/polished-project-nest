@@ -3,6 +3,11 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 
+export interface SkillPercentage {
+  name: string;
+  percentage: number;
+}
+
 export interface Profile {
   id?: string;
   name: string;
@@ -15,6 +20,7 @@ export interface Profile {
   linkedin: string | null;
   twitter: string | null;
   skills: string[] | null;
+  skill_percentages?: SkillPercentage[] | null;
 }
 
 export const useProfileData = () => {
@@ -32,6 +38,7 @@ export const useProfileData = () => {
     linkedin: "",
     twitter: "",
     skills: [],
+    skill_percentages: [],
   });
 
   const fetchProfile = async () => {
@@ -49,13 +56,14 @@ export const useProfileData = () => {
       }
       
       if (data) {
-        // Ensure skills is defined even if it's not in the database response
-        const profileWithSkills = {
+        // Ensure skills and skill_percentages are defined even if not in the database response
+        const profileWithDefaults = {
           ...data,
-          skills: data.skills || []
+          skills: data.skills || [],
+          skill_percentages: data.skill_percentages || []
         } as Profile;
         
-        setProfile(profileWithSkills);
+        setProfile(profileWithDefaults);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -97,6 +105,14 @@ export const useProfileData = () => {
     }));
   };
 
+  // Add a new function to handle skill percentages updates
+  const handleSkillPercentagesChange = (skill_percentages: SkillPercentage[]) => {
+    setProfile(prev => ({
+      ...prev,
+      skill_percentages
+    }));
+  };
+
   const saveProfile = async () => {
     setIsLoading(true);
     
@@ -118,6 +134,7 @@ export const useProfileData = () => {
             linkedin: profile.linkedin,
             twitter: profile.twitter,
             skills: profile.skills,
+            skill_percentages: profile.skill_percentages,
           })
           .eq('id', profile.id);
       } else {
@@ -135,6 +152,7 @@ export const useProfileData = () => {
             linkedin: profile.linkedin,
             twitter: profile.twitter,
             skills: profile.skills,
+            skill_percentages: profile.skill_percentages,
           })
           .select();
           
@@ -176,6 +194,7 @@ export const useProfileData = () => {
     isFetching,
     handleChange,
     handleSkillsChange,
+    handleSkillPercentagesChange,
     saveProfile,
   };
 };

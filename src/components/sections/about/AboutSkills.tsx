@@ -29,7 +29,7 @@ const AboutSkills = ({ profile, isLoading }: AboutSkillsProps) => {
     <div className="animate-slide-in" style={{ animationDelay: "0.2s" }}>
       <h3 className="text-xl font-semibold mb-6">My Skills</h3>
       
-      <SkillsProgress />
+      <SkillsProgress skillPercentages={profile?.skill_percentages} />
       
       <SkillsDisplay skills={skills} />
 

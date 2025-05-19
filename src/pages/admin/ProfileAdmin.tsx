@@ -6,9 +6,18 @@ import { useProfileData } from "@/hooks/useProfileData";
 import PersonalInfoForm from "@/components/admin/profile/PersonalInfoForm";
 import SocialLinksForm from "@/components/admin/profile/SocialLinksForm";
 import SkillsForm from "@/components/admin/profile/SkillsForm";
+import SkillPercentagesForm from "@/components/admin/profile/SkillPercentagesForm";
 
 const ProfileAdmin = () => {
-  const { profile, isLoading, isFetching, handleChange, handleSkillsChange, saveProfile } = useProfileData();
+  const { 
+    profile, 
+    isLoading, 
+    isFetching, 
+    handleChange, 
+    handleSkillsChange, 
+    handleSkillPercentagesChange, 
+    saveProfile 
+  } = useProfileData();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,6 +43,10 @@ const ProfileAdmin = () => {
           <PersonalInfoForm profile={profile} handleChange={handleChange} />
           <SocialLinksForm profile={profile} handleChange={handleChange} />
           <SkillsForm profile={profile} handleSkillsChange={handleSkillsChange} />
+          <SkillPercentagesForm 
+            profile={profile} 
+            handleSkillPercentagesChange={handleSkillPercentagesChange} 
+          />
           
           <div className="flex justify-end">
             <Button type="submit" disabled={isLoading}>

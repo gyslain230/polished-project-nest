@@ -24,14 +24,15 @@ const About = () => {
         }
         
         if (data) {
-          // Ensure skills is defined even if it's not in the database response
-          const profileWithSkills = {
+          // Ensure skills and skill_percentages are defined even if they're not in the database response
+          const profileWithDefaults = {
             ...data,
-            skills: data.skills || []
+            skills: data.skills || [],
+            skill_percentages: data.skill_percentages || []
           } as Profile;
           
-          setProfile(profileWithSkills);
-          console.log("Profile data fetched:", profileWithSkills);
+          setProfile(profileWithDefaults);
+          console.log("Profile data fetched:", profileWithDefaults);
         }
       } catch (error) {
         console.error('Error fetching profile:', error);

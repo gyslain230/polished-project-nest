@@ -84,6 +84,7 @@ export type Database = {
           name: string
           profile_image: string | null
           role: string
+          skill_percentages: Json | null
           skills: string[] | null
           twitter: string | null
           updated_at: string
@@ -99,6 +100,7 @@ export type Database = {
           name: string
           profile_image?: string | null
           role: string
+          skill_percentages?: Json | null
           skills?: string[] | null
           twitter?: string | null
           updated_at?: string
@@ -114,6 +116,7 @@ export type Database = {
           name?: string
           profile_image?: string | null
           role?: string
+          skill_percentages?: Json | null
           skills?: string[] | null
           twitter?: string | null
           updated_at?: string

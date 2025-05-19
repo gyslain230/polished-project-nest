@@ -1,48 +1,34 @@
 
 import React from "react";
+import { Progress } from "@/components/ui/progress";
+import { SkillPercentage } from "@/hooks/useProfileData";
 
-const SkillsProgress = () => {
+interface SkillsProgressProps {
+  skillPercentages?: SkillPercentage[] | null;
+}
+
+const SkillsProgress = ({ skillPercentages = [] }: SkillsProgressProps) => {
+  // Default skills if none are provided
+  const displaySkills = skillPercentages && skillPercentages.length > 0 
+    ? skillPercentages
+    : [
+        { name: "React & Frontend", percentage: 90 },
+        { name: "Node.js & Backend", percentage: 85 },
+        { name: "UI/UX Design", percentage: 75 },
+        { name: "Database & DevOps", percentage: 80 }
+      ];
+
   return (
     <div className="space-y-4">
-      <div>
-        <div className="flex justify-between mb-2">
-          <span>React & Frontend</span>
-          <span>90%</span>
+      {displaySkills.map((skill, index) => (
+        <div key={index}>
+          <div className="flex justify-between mb-2">
+            <span>{skill.name}</span>
+            <span>{skill.percentage}%</span>
+          </div>
+          <Progress value={skill.percentage} className="h-2" />
         </div>
-        <div className="h-2 bg-secondary rounded-full">
-          <div className="h-full bg-primary rounded-full" style={{ width: '90%' }}></div>
-        </div>
-      </div>
-      
-      <div>
-        <div className="flex justify-between mb-2">
-          <span>Node.js & Backend</span>
-          <span>85%</span>
-        </div>
-        <div className="h-2 bg-secondary rounded-full">
-          <div className="h-full bg-primary rounded-full" style={{ width: '85%' }}></div>
-        </div>
-      </div>
-      
-      <div>
-        <div className="flex justify-between mb-2">
-          <span>UI/UX Design</span>
-          <span>75%</span>
-        </div>
-        <div className="h-2 bg-secondary rounded-full">
-          <div className="h-full bg-primary rounded-full" style={{ width: '75%' }}></div>
-        </div>
-      </div>
-      
-      <div>
-        <div className="flex justify-between mb-2">
-          <span>Database & DevOps</span>
-          <span>80%</span>
-        </div>
-        <div className="h-2 bg-secondary rounded-full">
-          <div className="h-full bg-primary rounded-full" style={{ width: '80%' }}></div>
-        </div>
-      </div>
+      ))}
     </div>
   );
 };
