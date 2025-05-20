@@ -4,9 +4,10 @@ import { Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import emailjs from "@emailjs/browser";
 
 const Contact = () => {
   const { toast } = useToast();
@@ -49,7 +50,7 @@ const Contact = () => {
       
       console.log("Submitting message to Supabase:", messageData);
       
-      // Insert message without using .select() first to avoid potential RLS issues
+      // Insert message to Supabase
       const { error } = await supabase
         .from('messages')
         .insert(messageData);
@@ -60,7 +61,25 @@ const Contact = () => {
         throw error;
       }
       
-      console.log("Message saved successfully");
+      console.log("Message saved successfully to Supabase");
+      
+      // Send email via EmailJS
+      const emailjsTemplateParams = {
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+      };
+      
+      // Replace with your actual EmailJS service ID, template ID, and public key
+      const emailResponse = await emailjs.send(
+        'YOUR_EMAILJS_SERVICE_ID', 
+        'YOUR_EMAILJS_TEMPLATE_ID',
+        emailjsTemplateParams,
+        'YOUR_EMAILJS_PUBLIC_KEY'
+      );
+      
+      console.log("EmailJS response:", emailResponse);
       
       toast({
         title: "Message sent!",
