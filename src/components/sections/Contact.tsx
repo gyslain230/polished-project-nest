@@ -12,6 +12,9 @@ const Contact = () => {
           <p className="text-muted-foreground mt-6 text-center max-w-2xl">
             Have a question or want to work together? Drop me a message and I'll get back to you as soon as possible.
           </p>
+          <p className="text-xs text-muted-foreground mt-2 text-center">
+            Messages are stored for up to 5 days.
+          </p>
         </div>
         
         <div className="grid md:grid-cols-2 gap-12">
