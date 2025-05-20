@@ -4,7 +4,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { Profile, SkillPercentage } from "@/types/profile";
 import { fetchProfileData, saveProfileData } from "@/services/profileService";
 
-export { Profile, SkillPercentage } from "@/types/profile";
+// Use 'export type' for re-exporting types when isolatedModules is enabled
+export type { Profile, SkillPercentage } from "@/types/profile";
 
 export const useProfileData = () => {
   const { toast } = useToast();
