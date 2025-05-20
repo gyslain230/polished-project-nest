@@ -1,7 +1,7 @@
 
 import React from "react";
 import { Progress } from "@/components/ui/progress";
-import { SkillPercentage } from "@/hooks/useProfileData";
+import { SkillPercentage } from "@/types/profile";
 
 interface SkillsProgressProps {
   skillPercentages?: SkillPercentage[] | null;

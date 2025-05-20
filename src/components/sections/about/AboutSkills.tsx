@@ -3,7 +3,7 @@ import React from "react";
 import SkillsProgress from "./SkillsProgress";
 import SkillsDisplay from "./SkillsDisplay";
 import SocialLinks from "./SocialLinks";
-import { Profile } from "@/hooks/useProfileData";
+import { Profile } from "@/types/profile";
 
 interface AboutSkillsProps {
   profile: Profile | null;

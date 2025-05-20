@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Profile } from "@/hooks/useProfileData";
+import { Profile } from "@/types/profile";
 
 interface SocialLinksProps {
   profile: Profile | null;
