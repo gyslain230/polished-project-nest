@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Mail, Send } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -71,12 +70,12 @@ const Contact = () => {
         message: formData.message,
       };
       
-      // Replace with your actual EmailJS service ID, template ID, and public key
+      // Using the provided EmailJS credentials
       const emailResponse = await emailjs.send(
-        'YOUR_EMAILJS_SERVICE_ID', 
-        'YOUR_EMAILJS_TEMPLATE_ID',
+        'service_fw13wrt', 
+        'template_bfwzx6b',
         emailjsTemplateParams,
-        'YOUR_EMAILJS_PUBLIC_KEY'
+        'wgjjv5ohwqINElgtS'
       );
       
       console.log("EmailJS response:", emailResponse);
