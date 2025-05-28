@@ -1,10 +1,10 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { signIn } from "@/services/authService";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -20,14 +20,14 @@ const Login = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // This is a mock login - in a real app, you would authenticate with a backend
-    setTimeout(() => {
-      // Mock credentials for demo purposes
-      if (formData.email === "admin@example.com" && formData.password === "password") {
+    try {
+      const { user } = await signIn(formData.email, formData.password);
+      
+      if (user) {
         localStorage.setItem("isLoggedIn", "true");
         
         toast({
@@ -36,16 +36,18 @@ const Login = () => {
         });
         
         navigate("/admin/dashboard");
-      } else {
-        toast({
-          title: "Login failed",
-          description: "Invalid email or password. Try admin@example.com / password",
-          variant: "destructive",
-        });
       }
+    } catch (error: any) {
+      console.error('Login error:', error);
       
+      toast({
+        title: "Login failed",
+        description: error.message || "Invalid email or password",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -68,7 +70,7 @@ const Login = () => {
                   id="email"
                   name="email"
                   type="email"
-                  placeholder="admin@example.com"
+                  placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
                   required
@@ -99,10 +101,6 @@ const Login = () => {
               >
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
-              
-              <div className="text-sm text-muted-foreground text-center mt-4">
-                Demo credentials: admin@example.com / password
-              </div>
             </form>
           </CardContent>
         </Card>
