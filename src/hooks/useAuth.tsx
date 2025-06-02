@@ -18,25 +18,11 @@ export const useAuth = () => {
     loading: true
   });
 
-  const checkAdminRole = async (userId: string): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', userId)
-        .eq('role', 'admin')
-        .single();
-      
-      if (error) {
-        console.error('Error checking admin role:', error);
-        return false;
-      }
-      
-      return !!data;
-    } catch (error) {
-      console.error('Error checking admin role:', error);
-      return false;
-    }
+  // Simple admin check - you can customize this logic
+  const checkAdminRole = (user: User): boolean => {
+    // For now, treat all authenticated users as admins
+    // You can modify this to check specific email addresses or other criteria
+    return !!user;
   };
 
   useEffect(() => {
@@ -44,11 +30,7 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         const user = session?.user ?? null;
-        let isAdmin = false;
-
-        if (user) {
-          isAdmin = await checkAdminRole(user.id);
-        }
+        const isAdmin = user ? checkAdminRole(user) : false;
 
         setAuthState({
           user,
@@ -60,13 +42,9 @@ export const useAuth = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       const user = session?.user ?? null;
-      let isAdmin = false;
-
-      if (user) {
-        isAdmin = await checkAdminRole(user.id);
-      }
+      const isAdmin = user ? checkAdminRole(user) : false;
 
       setAuthState({
         user,
