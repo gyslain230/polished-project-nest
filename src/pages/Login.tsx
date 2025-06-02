@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -5,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { signIn } from "@/services/authService";
+import { loginLimiter } from "@/services/rateLimiter";
+import { validateEmail } from "@/services/inputSanitizer";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -25,11 +28,25 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      // Rate limiting check
+      const clientId = formData.email;
+      if (!loginLimiter.canMakeRequest(clientId)) {
+        const remainingTime = Math.ceil(loginLimiter.getRemainingTime(clientId) / 60000);
+        throw new Error(`Too many login attempts. Please wait ${remainingTime} minutes before trying again.`);
+      }
+
+      // Validate email format
+      if (!validateEmail(formData.email)) {
+        throw new Error("Please enter a valid email address.");
+      }
+
+      if (formData.password.length < 6) {
+        throw new Error("Password must be at least 6 characters long.");
+      }
+
       const { user } = await signIn(formData.email, formData.password);
       
       if (user) {
-        localStorage.setItem("isLoggedIn", "true");
-        
         toast({
           title: "Login successful",
           description: "Welcome back!",
@@ -73,6 +90,7 @@ const Login = () => {
                   placeholder="Enter your email"
                   value={formData.email}
                   onChange={handleChange}
+                  maxLength={254}
                   required
                 />
               </div>
@@ -90,6 +108,8 @@ const Login = () => {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={handleChange}
+                  minLength={6}
+                  maxLength={128}
                   required
                 />
               </div>

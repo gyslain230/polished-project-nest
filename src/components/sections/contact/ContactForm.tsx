@@ -7,6 +7,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { sanitizeFormData, validateEmail } from "@/services/inputSanitizer";
+import { contactFormLimiter } from "@/services/rateLimiter";
 import emailjs from "@emailjs/browser";
 
 interface ContactFormProps {
@@ -35,6 +37,30 @@ const ContactForm = ({ className }: ContactFormProps) => {
     setSubmitError(null);
     
     try {
+      // Rate limiting check
+      const clientId = `${formData.email}_${Date.now().toString().slice(0, -3)}0000`; // Round to nearest 10 seconds
+      if (!contactFormLimiter.canMakeRequest(clientId)) {
+        const remainingTime = Math.ceil(contactFormLimiter.getRemainingTime(clientId) / 60000);
+        throw new Error(`Too many requests. Please wait ${remainingTime} minutes before trying again.`);
+      }
+
+      // Validate email format
+      if (!validateEmail(formData.email)) {
+        throw new Error("Please enter a valid email address.");
+      }
+
+      // Sanitize input data
+      const sanitizedData = sanitizeFormData(formData);
+      
+      // Additional validation
+      if (sanitizedData.name.length < 2) {
+        throw new Error("Name must be at least 2 characters long.");
+      }
+      
+      if (sanitizedData.message.length < 10) {
+        throw new Error("Message must be at least 10 characters long.");
+      }
+      
       // Format the date consistently
       const formattedDate = new Date().toLocaleDateString('en-US', { 
         year: 'numeric', 
@@ -42,17 +68,17 @@ const ContactForm = ({ className }: ContactFormProps) => {
         day: 'numeric' 
       });
       
-      // Prepare message data
+      // Prepare message data with sanitized inputs
       const messageData = {
-        name: formData.name,
-        email: formData.email,
-        subject: formData.subject,
-        message: formData.message,
+        name: sanitizedData.name,
+        email: sanitizedData.email,
+        subject: sanitizedData.subject,
+        message: sanitizedData.message,
         date: formattedDate,
         read: false
       };
       
-      console.log("Submitting message to Supabase:", messageData);
+      console.log("Submitting sanitized message to Supabase:", messageData);
       
       // Insert message to Supabase
       const { error } = await supabase
@@ -61,18 +87,18 @@ const ContactForm = ({ className }: ContactFormProps) => {
       
       if (error) {
         console.error("Supabase error:", error);
-        setSubmitError(error.message);
+        setSubmitError("Failed to save message to database");
         throw error;
       }
       
       console.log("Message saved successfully to Supabase");
       
-      // Send email via EmailJS
+      // Send email via EmailJS with sanitized data
       const emailjsTemplateParams = {
-        name: formData.name,
-        email: formData.email,
-        subject: formData.subject,
-        message: formData.message,
+        name: sanitizedData.name,
+        email: sanitizedData.email,
+        subject: sanitizedData.subject,
+        message: sanitizedData.message,
       };
       
       // Using the provided EmailJS credentials
@@ -97,13 +123,13 @@ const ContactForm = ({ className }: ContactFormProps) => {
         subject: "",
         message: ""
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending message:", error);
       
       // Show detailed toast error
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again later.",
+        description: error.message || "Failed to send message. Please try again later.",
         variant: "destructive"
       });
     } finally {
@@ -134,6 +160,8 @@ const ContactForm = ({ className }: ContactFormProps) => {
               value={formData.name}
               onChange={handleChange}
               placeholder="John Doe"
+              minLength={2}
+              maxLength={100}
               required
             />
           </div>
@@ -148,6 +176,7 @@ const ContactForm = ({ className }: ContactFormProps) => {
               value={formData.email}
               onChange={handleChange}
               placeholder="john@example.com"
+              maxLength={254}
               required
             />
           </div>
@@ -163,6 +192,7 @@ const ContactForm = ({ className }: ContactFormProps) => {
             value={formData.subject}
             onChange={handleChange}
             placeholder="How can I help you?"
+            maxLength={200}
             required
           />
         </div>
@@ -178,6 +208,8 @@ const ContactForm = ({ className }: ContactFormProps) => {
             value={formData.message}
             onChange={handleChange}
             placeholder="Tell me about your project..."
+            minLength={10}
+            maxLength={2000}
             required
           />
         </div>

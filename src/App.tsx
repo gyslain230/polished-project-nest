@@ -16,7 +16,7 @@ import NewCertificate from "./pages/admin/NewCertificate";
 import MessagesAdmin from "./pages/admin/MessagesAdmin";
 import ProfileAdmin from "./pages/admin/ProfileAdmin";
 import NotFound from "./pages/NotFound";
-import ProtectedRoute from "./components/admin/ProtectedRoute";
+import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -31,7 +31,7 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           
           {/* Protected Admin Routes */}
-          <Route element={<ProtectedRoute />}>
+          <Route element={<AdminProtectedRoute />}>
             <Route path="/admin/dashboard" element={<Dashboard />} />
             <Route path="/admin/projects" element={<ProjectsAdmin />} />
             <Route path="/admin/projects/new" element={<NewProject />} />
