@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -20,9 +19,8 @@ export const useAuth = () => {
 
   // Check if the user is the designated admin
   const checkAdminRole = (user: User): boolean => {
-    // You can modify this to check for a specific admin email or user ID
-    // For example, replace 'admin@example.com' with your actual admin email
-    const adminEmail = 'admin@example.com'; // Change this to your admin email
+    // Updated to use your actual admin email
+    const adminEmail = 'gislainrugira@gmail.com'; // Your admin email
     
     return user.email === adminEmail;
   };
