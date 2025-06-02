@@ -18,11 +18,13 @@ export const useAuth = () => {
     loading: true
   });
 
-  // Simple admin check - you can customize this logic
+  // Check if the user is the designated admin
   const checkAdminRole = (user: User): boolean => {
-    // For now, treat all authenticated users as admins
-    // You can modify this to check specific email addresses or other criteria
-    return !!user;
+    // You can modify this to check for a specific admin email or user ID
+    // For example, replace 'admin@example.com' with your actual admin email
+    const adminEmail = 'admin@example.com'; // Change this to your admin email
+    
+    return user.email === adminEmail;
   };
 
   useEffect(() => {
