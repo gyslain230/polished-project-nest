@@ -101,12 +101,12 @@ const ContactForm = ({ className }: ContactFormProps) => {
         message: sanitizedData.message,
       };
       
-      // Using the provided EmailJS credentials
+      // Using environment variables for EmailJS credentials
       const emailResponse = await emailjs.send(
-        'service_fw13wrt', 
-        'template_bfwzx6b',
+        import.meta.env.VITE_EMAILJS_SERVICE_ID, 
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
         emailjsTemplateParams,
-        'wgjjv5ohwqINElgtS'
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY
       );
       
       console.log("EmailJS response:", emailResponse);

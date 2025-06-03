@@ -9,13 +9,13 @@ const Footer = () => {
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row justify-between items-center">
           <div>
-            <h3 className="text-xl font-bold gradient-text">Portfolio</h3>
+            <h3 className="text-xl font-bold gradient-text">Rugira Gyslain</h3>
             <p className="text-muted-foreground mt-2">Showcasing my work and skills</p>
           </div>
           
           <div className="flex items-center space-x-6 mt-6 md:mt-0">
             <a 
-              href="https://github.com"
+              href="https://github.com/gyslain230"
               target="_blank"
               rel="noopener noreferrer"
               className="text-muted-foreground hover:text-primary transition-colors"
@@ -32,7 +32,7 @@ const Footer = () => {
         </div>
         
         <div className="mt-8 border-t border-border pt-8 text-center text-sm text-muted-foreground">
-          <p>&copy; {currentYear} Portfolio Website. All rights reserved.</p>
+          <p>&copy; {currentYear} Rugira Gyslain. All rights reserved.</p>
         </div>
       </div>
     </footer>
