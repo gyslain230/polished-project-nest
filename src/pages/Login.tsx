@@ -29,6 +29,8 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log('Attempting login with email:', formData.email);
+      
       // Rate limiting check
       const clientId = formData.email;
       if (!loginLimiter.canMakeRequest(clientId)) {
@@ -45,7 +47,9 @@ const Login = () => {
         throw new Error("Password must be at least 6 characters long.");
       }
 
-      const { user } = await signIn(formData.email, formData.password);
+      console.log('Validation passed, calling signIn...');
+      const { user, session } = await signIn(formData.email, formData.password);
+      console.log('SignIn response:', { user: user?.email, hasSession: !!session });
       
       if (user) {
         toast({
@@ -54,13 +58,32 @@ const Login = () => {
         });
         
         navigate("/admin/dashboard");
+      } else {
+        throw new Error("Login failed - no user returned");
       }
     } catch (error: any) {
-      console.error('Login error:', error);
+      console.error('Login error details:', {
+        message: error.message,
+        code: error.code,
+        status: error.status,
+        email: formData.email
+      });
+      
+      let errorMessage = "Invalid email or password";
+      
+      if (error.message.includes("Invalid login credentials")) {
+        errorMessage = "The email or password you entered is incorrect. Please check your credentials and try again.";
+      } else if (error.message.includes("Email not confirmed")) {
+        errorMessage = "Please check your email and click the confirmation link before logging in.";
+      } else if (error.message.includes("Too many")) {
+        errorMessage = error.message;
+      } else if (error.message.includes("network") || error.message.includes("fetch")) {
+        errorMessage = "Network error. Please check your internet connection and try again.";
+      }
       
       toast({
         title: "Login failed",
-        description: error.message || "Invalid email or password",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -140,6 +163,11 @@ const Login = () => {
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
+            
+            <div className="mt-4 text-center text-sm text-muted-foreground">
+              <p>Admin email: gislainrugira@gmail.com</p>
+              <p className="text-xs mt-1">Make sure you're using the correct admin credentials</p>
+            </div>
           </CardContent>
         </Card>
       </div>

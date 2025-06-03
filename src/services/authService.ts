@@ -1,12 +1,23 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const signIn = async (email: string, password: string) => {
+  console.log('AuthService: Attempting to sign in with email:', email);
+  
   const { data, error } = await supabase.auth.signInWithPassword({
-    email,
+    email: email.trim().toLowerCase(),
     password
   });
 
+  console.log('AuthService: Supabase response:', {
+    hasUser: !!data.user,
+    hasSession: !!data.session,
+    userEmail: data.user?.email,
+    error: error?.message
+  });
+
   if (error) {
+    console.error('AuthService: Sign in error:', error);
     throw error;
   }
 
