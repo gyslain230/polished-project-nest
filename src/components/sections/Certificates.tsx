@@ -11,16 +11,29 @@ interface Certificate {
   issuer: string;
   date: string;
   image: string;
+  redirect_url?: string;
 }
 
-const CertificateCard = ({ title, issuer, date, image }: {
+const CertificateCard = ({ title, issuer, date, image, redirectUrl }: {
   title: string;
   issuer: string;
   date: string;
   image: string;
+  redirectUrl?: string;
 }) => {
+  const handleClick = () => {
+    if (redirectUrl) {
+      window.open(redirectUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
   return (
-    <Card className="overflow-hidden bg-background hover:border-primary transition-colors group">
+    <Card 
+      className={`overflow-hidden bg-background hover:border-primary transition-colors group ${
+        redirectUrl ? 'cursor-pointer hover:shadow-lg' : ''
+      }`}
+      onClick={handleClick}
+    >
       <div className="h-48 overflow-hidden relative">
         <img 
           src={image} 
@@ -30,6 +43,11 @@ const CertificateCard = ({ title, issuer, date, image }: {
         <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm p-2 rounded-full">
           <Award className="h-5 w-5 text-primary" />
         </div>
+        {redirectUrl && (
+          <div className="absolute bottom-4 right-4 bg-primary/80 backdrop-blur-sm p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="text-xs text-white font-medium">View</span>
+          </div>
+        )}
       </div>
       <CardContent className="p-6">
         <h4 className="text-lg font-semibold mb-2">{title}</h4>
@@ -101,6 +119,7 @@ const Certificates = () => {
                   issuer={cert.issuer}
                   date={cert.date}
                   image={cert.image}
+                  redirectUrl={cert.redirect_url}
                 />
               </div>
             ))

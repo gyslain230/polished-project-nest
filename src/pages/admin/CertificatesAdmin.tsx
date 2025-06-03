@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Award, Plus, Pen, Trash } from "lucide-react";
+import { Award, Plus, Pen, Trash, ExternalLink } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/components/ui/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ interface Certificate {
   issuer: string;
   date: string;
   image: string;
+  redirect_url?: string;
 }
 
 const CertificatesAdmin = () => {
@@ -112,19 +113,20 @@ const CertificatesAdmin = () => {
                 <TableHead>Certificate</TableHead>
                 <TableHead>Issuer</TableHead>
                 <TableHead>Date</TableHead>
+                <TableHead>URL</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     Loading certificates...
                   </TableCell>
                 </TableRow>
               ) : certificates.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8">
+                  <TableCell colSpan={6} className="text-center py-8">
                     No certificates found. Add your first certificate!
                   </TableCell>
                 </TableRow>
@@ -141,6 +143,16 @@ const CertificatesAdmin = () => {
                     </TableCell>
                     <TableCell>{certificate.issuer}</TableCell>
                     <TableCell>{certificate.date}</TableCell>
+                    <TableCell>
+                      {certificate.redirect_url ? (
+                        <div className="flex items-center gap-2">
+                          <ExternalLink className="h-4 w-4 text-primary" />
+                          <span className="text-sm text-muted-foreground">Has URL</span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">No URL</span>
+                      )}
+                    </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Link to={`/admin/certificates/edit/${certificate.id}`}>

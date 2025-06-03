@@ -23,6 +23,7 @@ interface CertificateFormData {
   issuer: string;
   date: string;
   image: string;
+  redirect_url: string;
 }
 
 const NewCertificate = () => {
@@ -36,6 +37,7 @@ const NewCertificate = () => {
       issuer: "",
       date: "",
       image: "",
+      redirect_url: "",
     }
   });
 
@@ -48,6 +50,7 @@ const NewCertificate = () => {
         issuer: data.issuer,
         date: data.date,
         image: data.image,
+        redirect_url: data.redirect_url || null,
       });
 
       if (error) throw error;
@@ -151,10 +154,27 @@ const NewCertificate = () => {
                 )}
               />
 
+              <FormField
+                control={form.control}
+                name="redirect_url"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Certificate URL (Optional)</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com/certificate" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      URL to view or verify the certificate online. Leave empty if not available.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  Your certificate will be visible on your portfolio once saved
+                  Your certificate will be visible on your portfolio once saved. If you add a URL, visitors can click the certificate to view it.
                 </p>
               </div>
 
