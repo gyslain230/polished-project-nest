@@ -5,6 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Home } from "lucide-react";
 import { signIn } from "@/services/authService";
 import { loginLimiter } from "@/services/rateLimiter";
 import { validateEmail } from "@/services/inputSanitizer";
@@ -67,15 +68,32 @@ const Login = () => {
     }
   };
 
+  const handleGoHome = () => {
+    navigate("/");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 animate-fade-in">
       <div className="w-full max-w-md">
         <Card className="border border-border">
           <CardHeader>
-            <CardTitle className="text-2xl gradient-text">Portfolio Admin</CardTitle>
-            <CardDescription>
-              Login to manage your portfolio content
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-2xl gradient-text">Portfolio Admin</CardTitle>
+                <CardDescription>
+                  Login to manage your portfolio content
+                </CardDescription>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={handleGoHome}
+                className="gap-2"
+              >
+                <Home className="h-4 w-4" />
+                Go to Home
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
