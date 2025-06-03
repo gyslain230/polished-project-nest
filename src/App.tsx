@@ -13,6 +13,7 @@ import NewProject from "./pages/admin/NewProject";
 import EditProject from "./pages/admin/EditProject";
 import CertificatesAdmin from "./pages/admin/CertificatesAdmin";
 import NewCertificate from "./pages/admin/NewCertificate";
+import EditCertificate from "./pages/admin/EditCertificate";
 import MessagesAdmin from "./pages/admin/MessagesAdmin";
 import ProfileAdmin from "./pages/admin/ProfileAdmin";
 import NotFound from "./pages/NotFound";
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/admin/projects/edit/:projectId" element={<EditProject />} />
             <Route path="/admin/certificates" element={<CertificatesAdmin />} />
             <Route path="/admin/certificates/new" element={<NewCertificate />} />
+            <Route path="/admin/certificates/edit/:certificateId" element={<EditCertificate />} />
             <Route path="/admin/messages" element={<MessagesAdmin />} />
             <Route path="/admin/profile" element={<ProfileAdmin />} />
           </Route>

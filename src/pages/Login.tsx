@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
@@ -163,11 +162,6 @@ const Login = () => {
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
-            
-            <div className="mt-4 text-center text-sm text-muted-foreground">
-              <p>Admin email: gislainrugira@gmail.com</p>
-              <p className="text-xs mt-1">Make sure you're using the correct admin credentials</p>
-            </div>
           </CardContent>
         </Card>
       </div>
