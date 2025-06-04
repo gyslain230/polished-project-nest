@@ -7,6 +7,7 @@ import PersonalInfoForm from "@/components/admin/profile/PersonalInfoForm";
 import SocialLinksForm from "@/components/admin/profile/SocialLinksForm";
 import SkillsForm from "@/components/admin/profile/SkillsForm";
 import SkillPercentagesForm from "@/components/admin/profile/SkillPercentagesForm";
+import ProfileImageUpload from "@/components/admin/profile/ProfileImageUpload";
 
 const ProfileAdmin = () => {
   const { 
@@ -18,6 +19,15 @@ const ProfileAdmin = () => {
     handleSkillPercentagesChange, 
     saveProfile 
   } = useProfileData();
+
+  const handleImageChange = (url: string) => {
+    handleChange({
+      target: {
+        name: 'profile_image',
+        value: url
+      }
+    } as React.ChangeEvent<HTMLInputElement>);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,6 +50,10 @@ const ProfileAdmin = () => {
         <h1 className="text-2xl font-bold mb-6">Edit Profile</h1>
         
         <form onSubmit={handleSubmit} className="max-w-3xl space-y-8">
+          <ProfileImageUpload 
+            profile={profile} 
+            onImageChange={handleImageChange} 
+          />
           <PersonalInfoForm profile={profile} handleChange={handleChange} />
           <SocialLinksForm profile={profile} handleChange={handleChange} />
           <SkillsForm profile={profile} handleSkillsChange={handleSkillsChange} />

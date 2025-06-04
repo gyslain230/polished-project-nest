@@ -6,6 +6,7 @@ import AdminLayout from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
+import ImageUpload from "@/components/admin/ImageUpload";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Form,
@@ -42,6 +43,10 @@ const EditCertificate = () => {
       redirect_url: "",
     }
   });
+
+  const handleImageUpload = (url: string) => {
+    form.setValue('image', url);
+  };
 
   useEffect(() => {
     const fetchCertificate = async () => {
@@ -195,22 +200,17 @@ const EditCertificate = () => {
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="image"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Certificate Image URL</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter image URL" {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      URL to an image representing this certificate
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <FormItem>
+                <FormLabel>Certificate Image</FormLabel>
+                <ImageUpload
+                  currentImageUrl={form.watch('image')}
+                  onImageUploaded={handleImageUpload}
+                  folder="certificates"
+                />
+                <FormDescription>
+                  Upload an image of your certificate
+                </FormDescription>
+              </FormItem>
 
               <FormField
                 control={form.control}
