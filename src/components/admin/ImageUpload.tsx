@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
@@ -23,6 +23,11 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
 
+  // Update preview when currentImageUrl changes
+  useEffect(() => {
+    setPreviewUrl(currentImageUrl || null);
+  }, [currentImageUrl]);
+
   const uploadImage = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       setUploading(true);
@@ -36,6 +41,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
+      console.log('Uploading file to:', filePath);
+
       const { error: uploadError } = await supabase.storage
         .from('images')
         .upload(filePath, file);
@@ -48,6 +55,8 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
         .from('images')
         .getPublicUrl(filePath);
 
+      console.log('Image uploaded successfully, URL:', data.publicUrl);
+      
       setPreviewUrl(data.publicUrl);
       onImageUploaded(data.publicUrl);
 

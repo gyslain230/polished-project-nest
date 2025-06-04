@@ -45,7 +45,10 @@ const EditCertificate = () => {
   });
 
   const handleImageUpload = (url: string) => {
+    console.log('Image uploaded, setting form value:', url);
     form.setValue('image', url);
+    // Force a re-render to update the component
+    form.trigger('image');
   };
 
   useEffect(() => {
@@ -53,6 +56,7 @@ const EditCertificate = () => {
       if (!certificateId) return;
 
       try {
+        console.log('Fetching certificate with ID:', certificateId);
         const { data, error } = await supabase
           .from('certificates')
           .select('*')
@@ -62,6 +66,7 @@ const EditCertificate = () => {
         if (error) throw error;
 
         if (data) {
+          console.log('Certificate data fetched:', data);
           form.reset({
             title: data.title,
             issuer: data.issuer,
@@ -90,6 +95,7 @@ const EditCertificate = () => {
     if (!certificateId) return;
 
     setIsSubmitting(true);
+    console.log('Submitting certificate data:', data);
 
     try {
       const { error } = await supabase
