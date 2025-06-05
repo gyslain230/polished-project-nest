@@ -14,23 +14,14 @@ const About = () => {
       try {
         setIsLoading(true);
         
-        // Check if user is authenticated first
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (!session) {
-          // If not authenticated, try to sign in anonymously or handle gracefully
-          console.log("No session found, attempting to fetch profile without auth");
-        }
-        
         const { data, error } = await supabase
           .from('profiles')
           .select('*')
           .limit(1)
-          .single();
+          .maybeSingle();
         
-        if (error && error.code !== 'PGRST116') {
+        if (error) {
           console.error('Error fetching profile:', error);
-          // Don't throw error to avoid breaking the UI
           return;
         }
         

@@ -18,33 +18,18 @@ export const useAuth = () => {
     loading: true
   });
 
-  // Check if the user is the designated admin using the database function
-  const checkAdminRole = async (user: User): Promise<boolean> => {
-    try {
-      const { data, error } = await supabase.rpc('is_admin', { user_id: user.id });
-      
-      if (error) {
-        console.error('Error checking admin role:', error);
-        return false;
-      }
-      
-      return data || false;
-    } catch (error) {
-      console.error('Error calling is_admin function:', error);
-      return false;
-    }
+  // Check if the user is the designated admin using email from auth
+  const checkAdminRole = (user: User): boolean => {
+    const adminEmail = 'gislainrugira@gmail.com';
+    return user.email === adminEmail;
   };
 
   useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+      (event, session) => {
         const user = session?.user ?? null;
-        let isAdmin = false;
-        
-        if (user) {
-          isAdmin = await checkAdminRole(user);
-        }
+        const isAdmin = user ? checkAdminRole(user) : false;
 
         setAuthState({
           user,
@@ -56,13 +41,9 @@ export const useAuth = () => {
     );
 
     // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
       const user = session?.user ?? null;
-      let isAdmin = false;
-      
-      if (user) {
-        isAdmin = await checkAdminRole(user);
-      }
+      const isAdmin = user ? checkAdminRole(user) : false;
 
       setAuthState({
         user,
