@@ -2,6 +2,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
 export const signIn = async (email: string, password: string) => {
+  if (!email || !password) {
+    throw new Error("Email and password are required");
+  }
+  
   console.log('AuthService: Attempting to sign in with email:', email);
   
   const { data, error } = await supabase.auth.signInWithPassword({
