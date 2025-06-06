@@ -11,7 +11,7 @@ interface LoginAttempt {
 class SecurityService {
   private loginAttempts: Map<string, LoginAttempt> = new Map();
   private readonly MAX_LOGIN_ATTEMPTS = 5;
-  private readonly LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
+  private readonly LOCKOUT_DURATION = 10 * 60 * 1000; // 10 minutes
 
   // Enhanced admin verification
   async verifyAdminAccess(userId: string): Promise<boolean> {
@@ -76,9 +76,19 @@ class SecurityService {
     
     if (attempt.count >= this.MAX_LOGIN_ATTEMPTS) {
       attempt.blocked = true;
+      console.log(`User ${identifier} blocked after ${attempt.count} failed attempts`);
     }
     
     this.loginAttempts.set(identifier, attempt);
+  }
+
+  // Get remaining attempts before lockout
+  getRemainingAttempts(identifier: string): number {
+    const attempt = this.loginAttempts.get(identifier);
+    if (!attempt || attempt.blocked) {
+      return 0;
+    }
+    return this.MAX_LOGIN_ATTEMPTS - attempt.count;
   }
 
   // Secure login with enhanced validation
@@ -93,34 +103,52 @@ class SecurityService {
         return { success: false, error: "Invalid password" };
       }
       
+      const emailKey = email.trim().toLowerCase();
+      
       // Check rate limiting
-      const rateLimit = this.checkLoginRateLimit(email);
+      const rateLimit = this.checkLoginRateLimit(emailKey);
       if (!rateLimit.allowed) {
         const minutes = Math.ceil((rateLimit.remainingTime || 0) / 60000);
         return { 
           success: false, 
-          error: `Too many failed attempts. Try again in ${minutes} minutes.` 
+          error: `Too many failed login attempts. Account temporarily locked. Try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.` 
         };
       }
       
+      console.log(`Login attempt for ${emailKey}, attempts: ${this.loginAttempts.get(emailKey)?.count || 0}/${this.MAX_LOGIN_ATTEMPTS}`);
+      
       // Attempt login
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: email.trim().toLowerCase(),
+        email: emailKey,
         password
       });
       
       if (error) {
-        this.recordLoginAttempt(email, false);
-        return { success: false, error: "Invalid credentials" };
+        console.log('Supabase auth error:', error.message);
+        this.recordLoginAttempt(emailKey, false);
+        
+        const remainingAttempts = this.getRemainingAttempts(emailKey);
+        if (remainingAttempts > 0) {
+          return { 
+            success: false, 
+            error: `Invalid credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining before temporary lockout.` 
+          };
+        } else {
+          return { 
+            success: false, 
+            error: "Too many failed login attempts. Account temporarily locked for 10 minutes." 
+          };
+        }
       }
       
       if (!data.user) {
-        this.recordLoginAttempt(email, false);
+        this.recordLoginAttempt(emailKey, false);
         return { success: false, error: "Login failed" };
       }
       
       // Record successful attempt
-      this.recordLoginAttempt(email, true);
+      this.recordLoginAttempt(emailKey, true);
+      console.log(`Successful login for ${emailKey}`);
       
       return { success: true, user: data.user };
     } catch (error) {
