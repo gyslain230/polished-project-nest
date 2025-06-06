@@ -9,9 +9,33 @@ interface LoginAttempt {
 }
 
 class SecurityService {
-  private loginAttempts: Map<string, LoginAttempt> = new Map();
   private readonly MAX_LOGIN_ATTEMPTS = 5;
   private readonly LOCKOUT_DURATION = 10 * 60 * 1000; // 10 minutes
+  private readonly STORAGE_KEY = 'login_attempts';
+
+  // Get login attempts from localStorage
+  private getLoginAttempts(): Map<string, LoginAttempt> {
+    try {
+      const stored = localStorage.getItem(this.STORAGE_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        return new Map(Object.entries(data));
+      }
+    } catch (error) {
+      console.error('Error reading login attempts from localStorage:', error);
+    }
+    return new Map();
+  }
+
+  // Save login attempts to localStorage
+  private saveLoginAttempts(attempts: Map<string, LoginAttempt>): void {
+    try {
+      const data = Object.fromEntries(attempts);
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.error('Error saving login attempts to localStorage:', error);
+    }
+  }
 
   // Enhanced admin verification
   async verifyAdminAccess(userId: string): Promise<boolean> {
@@ -39,7 +63,8 @@ class SecurityService {
 
   // Rate limiting for login attempts
   checkLoginRateLimit(identifier: string): { allowed: boolean; remainingTime?: number } {
-    const attempt = this.loginAttempts.get(identifier);
+    const loginAttempts = this.getLoginAttempts();
+    const attempt = loginAttempts.get(identifier);
     const now = Date.now();
     
     if (!attempt) {
@@ -48,7 +73,8 @@ class SecurityService {
     
     // Reset if lockout period has expired
     if (attempt.blocked && now - attempt.lastAttempt > this.LOCKOUT_DURATION) {
-      this.loginAttempts.delete(identifier);
+      loginAttempts.delete(identifier);
+      this.saveLoginAttempts(loginAttempts);
       return { allowed: true };
     }
     
@@ -62,12 +88,14 @@ class SecurityService {
 
   // Record login attempt
   recordLoginAttempt(identifier: string, success: boolean): void {
+    const loginAttempts = this.getLoginAttempts();
     const now = Date.now();
-    const attempt = this.loginAttempts.get(identifier) || { count: 0, lastAttempt: now, blocked: false };
+    const attempt = loginAttempts.get(identifier) || { count: 0, lastAttempt: now, blocked: false };
     
     if (success) {
       // Reset on successful login
-      this.loginAttempts.delete(identifier);
+      loginAttempts.delete(identifier);
+      this.saveLoginAttempts(loginAttempts);
       return;
     }
     
@@ -79,12 +107,14 @@ class SecurityService {
       console.log(`User ${identifier} blocked after ${attempt.count} failed attempts`);
     }
     
-    this.loginAttempts.set(identifier, attempt);
+    loginAttempts.set(identifier, attempt);
+    this.saveLoginAttempts(loginAttempts);
   }
 
   // Get remaining attempts before lockout
   getRemainingAttempts(identifier: string): number {
-    const attempt = this.loginAttempts.get(identifier);
+    const loginAttempts = this.getLoginAttempts();
+    const attempt = loginAttempts.get(identifier);
     if (!attempt || attempt.blocked) {
       return 0;
     }
@@ -115,7 +145,7 @@ class SecurityService {
         };
       }
       
-      console.log(`Login attempt for ${emailKey}, attempts: ${this.loginAttempts.get(emailKey)?.count || 0}/${this.MAX_LOGIN_ATTEMPTS}`);
+      console.log(`Login attempt for ${emailKey}, attempts: ${this.getLoginAttempts().get(emailKey)?.count || 0}/${this.MAX_LOGIN_ATTEMPTS}`);
       
       // Attempt login
       const { data, error } = await supabase.auth.signInWithPassword({
