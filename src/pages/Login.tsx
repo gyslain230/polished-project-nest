@@ -1,53 +1,68 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/components/ui/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home } from "lucide-react";
+import { Home, Eye, EyeOff } from "lucide-react";
 import { signIn } from "@/services/authService";
-import { loginLimiter } from "@/services/rateLimiter";
-import { validateEmail } from "@/services/inputSanitizer";
+import { validateEmail, validatePassword } from "@/services/inputSanitizer";
 
 const Login = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: ""
   });
+  const [errors, setErrors] = useState<{
+    email?: string;
+    password?: string;
+  }>({});
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    
+    // Clear errors when user starts typing
+    if (errors[name as keyof typeof errors]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }));
+    }
+  };
+
+  const validateForm = () => {
+    const newErrors: typeof errors = {};
+    
+    if (!validateEmail(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    
+    if (!formData.password) {
+      newErrors.password = "Password is required";
+    } else if (formData.password.length < 6) {
+      newErrors.password = "Password must be at least 6 characters";
+    }
+    
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
       console.log('Attempting login with email:', formData.email);
       
-      // Rate limiting check
-      const clientId = formData.email;
-      if (!loginLimiter.canMakeRequest(clientId)) {
-        const remainingTime = Math.ceil(loginLimiter.getRemainingTime(clientId) / 60000);
-        throw new Error(`Too many login attempts. Please wait ${remainingTime} minutes before trying again.`);
-      }
-
-      // Validate email format
-      if (!validateEmail(formData.email)) {
-        throw new Error("Please enter a valid email address.");
-      }
-
-      if (formData.password.length < 6) {
-        throw new Error("Password must be at least 6 characters long.");
-      }
-
-      console.log('Validation passed, calling signIn...');
-      const { user, session } = await signIn(formData.email, formData.password);
+      const { user, session } = await signIn(formData.email, password);
       console.log('SignIn response:', { user: user?.email, hasSession: !!session });
       
       if (user) {
@@ -63,21 +78,17 @@ const Login = () => {
     } catch (error: any) {
       console.error('Login error details:', {
         message: error.message,
-        code: error.code,
-        status: error.status,
         email: formData.email
       });
       
-      let errorMessage = "Invalid email or password";
+      let errorMessage = "Login failed. Please check your credentials.";
       
-      if (error.message.includes("Invalid login credentials")) {
-        errorMessage = "The email or password you entered is incorrect. Please check your credentials and try again.";
-      } else if (error.message.includes("Email not confirmed")) {
-        errorMessage = "Please check your email and click the confirmation link before logging in.";
+      if (error.message.includes("Invalid credentials")) {
+        errorMessage = "The email or password you entered is incorrect.";
       } else if (error.message.includes("Too many")) {
         errorMessage = error.message;
       } else if (error.message.includes("network") || error.message.includes("fetch")) {
-        errorMessage = "Network error. Please check your internet connection and try again.";
+        errorMessage = "Network error. Please check your connection and try again.";
       }
       
       toast({
@@ -131,27 +142,48 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleChange}
                   maxLength={254}
+                  className={errors.email ? "border-red-500" : ""}
                   required
                 />
+                {errors.email && (
+                  <p className="text-sm text-red-500">{errors.email}</p>
+                )}
               </div>
               
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </label>
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={formData.password}
+                    onChange={handleChange}
+                    minLength={6}
+                    maxLength={128}
+                    className={errors.password ? "border-red-500 pr-10" : "pr-10"}
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </Button>
                 </div>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={formData.password}
-                  onChange={handleChange}
-                  minLength={6}
-                  maxLength={128}
-                  required
-                />
+                {errors.password && (
+                  <p className="text-sm text-red-500">{errors.password}</p>
+                )}
               </div>
               
               <Button 

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Upload, X, Image as ImageIcon } from 'lucide-react';
+import { validateFileUpload } from '@/services/inputSanitizer';
 
 interface ImageUploadProps {
   currentImageUrl?: string;
@@ -23,7 +24,6 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentImageUrl || null);
 
-  // Update preview when currentImageUrl changes
   useEffect(() => {
     setPreviewUrl(currentImageUrl || null);
   }, [currentImageUrl]);
@@ -37,7 +37,14 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       }
 
       const file = event.target.files[0];
-      const fileExt = file.name.split('.').pop();
+      
+      // Validate file security
+      const validation = validateFileUpload(file);
+      if (!validation.isValid) {
+        throw new Error(validation.error);
+      }
+
+      const fileExt = file.name.split('.').pop()?.toLowerCase();
       const fileName = `${Math.random()}.${fileExt}`;
       const filePath = `${folder}/${fileName}`;
 
@@ -45,7 +52,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
 
       const { error: uploadError } = await supabase.storage
         .from('images')
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
 
       if (uploadError) {
         throw uploadError;
@@ -73,6 +83,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
       });
     } finally {
       setUploading(false);
+      // Clear the input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -90,12 +104,12 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
             <p className="mb-2 text-sm text-gray-500">
               <span className="font-semibold">Click to upload</span> or drag and drop
             </p>
-            <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
+            <p className="text-xs text-gray-500">PNG, JPG, GIF, WebP up to 5MB</p>
           </div>
           <Input
             id="image-upload"
             type="file"
-            accept={accept}
+            accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
             onChange={uploadImage}
             disabled={uploading}
             className="hidden"
@@ -112,6 +126,10 @@ const ImageUpload: React.FC<ImageUploadProps> = ({
                 src={previewUrl} 
                 alt="Preview" 
                 className="w-12 h-12 object-cover rounded"
+                onError={() => {
+                  console.error('Image failed to load');
+                  setPreviewUrl(null);
+                }}
               />
               <span className="text-sm text-gray-700">Image uploaded</span>
             </div>

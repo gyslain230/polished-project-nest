@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { securityService } from "./securityService";
 
 export const signIn = async (email: string, password: string) => {
   if (!email || !password) {
@@ -8,39 +9,30 @@ export const signIn = async (email: string, password: string) => {
   
   console.log('AuthService: Attempting to sign in with email:', email);
   
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: email.trim().toLowerCase(),
-    password
-  });
-
-  console.log('AuthService: Supabase response:', {
-    hasUser: !!data.user,
-    hasSession: !!data.session,
-    userEmail: data.user?.email,
-    error: error?.message
-  });
-
-  if (error) {
-    console.error('AuthService: Sign in error:', error);
-    throw error;
+  const result = await securityService.secureLogin(email, password);
+  
+  if (!result.success) {
+    throw new Error(result.error || "Login failed");
   }
 
-  return data;
+  console.log('AuthService: Login successful for user:', result.user?.email);
+  
+  return {
+    user: result.user,
+    session: await supabase.auth.getSession().then(({ data }) => data.session)
+  };
 };
 
 export const signOut = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    throw error;
-  }
+  await securityService.secureLogout();
 };
 
 export const getCurrentUser = async () => {
-  const { data: { user }, error } = await supabase.auth.getUser();
+  const session = await securityService.validateSession();
   
-  if (error) {
-    throw error;
+  if (!session.valid) {
+    throw new Error("No valid session");
   }
   
-  return user;
+  return session.user;
 };

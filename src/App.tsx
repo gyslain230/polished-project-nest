@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -19,36 +20,51 @@ import ProfileAdmin from "./pages/admin/ProfileAdmin";
 import NotFound from "./pages/NotFound";
 import AdminProtectedRoute from "./components/admin/AdminProtectedRoute";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // Don't retry on auth errors
+        if (error instanceof Error && error.message.includes('auth')) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          
-          {/* Protected Admin Routes */}
-          <Route element={<AdminProtectedRoute />}>
-            <Route path="/admin/dashboard" element={<Dashboard />} />
-            <Route path="/admin/projects" element={<ProjectsAdmin />} />
-            <Route path="/admin/projects/new" element={<NewProject />} />
-            <Route path="/admin/projects/edit/:projectId" element={<EditProject />} />
-            <Route path="/admin/certificates" element={<CertificatesAdmin />} />
-            <Route path="/admin/certificates/new" element={<NewCertificate />} />
-            <Route path="/admin/certificates/edit/:certificateId" element={<EditCertificate />} />
-            <Route path="/admin/messages" element={<MessagesAdmin />} />
-            <Route path="/admin/profile" element={<ProfileAdmin />} />
-          </Route>
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            
+            {/* Protected Admin Routes */}
+            <Route element={<AdminProtectedRoute />}>
+              <Route path="/admin/dashboard" element={<Dashboard />} />
+              <Route path="/admin/projects" element={<ProjectsAdmin />} />
+              <Route path="/admin/projects/new" element={<NewProject />} />
+              <Route path="/admin/projects/edit/:projectId" element={<EditProject />} />
+              <Route path="/admin/certificates" element={<CertificatesAdmin />} />
+              <Route path="/admin/certificates/new" element={<NewCertificate />} />
+              <Route path="/admin/certificates/edit/:certificateId" element={<EditCertificate />} />
+              <Route path="/admin/messages" element={<MessagesAdmin />} />
+              <Route path="/admin/profile" element={<ProfileAdmin />} />
+            </Route>
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;
