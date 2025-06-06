@@ -62,7 +62,7 @@ const Login = () => {
     try {
       console.log('Attempting login with email:', formData.email);
       
-      const { user, session } = await signIn(formData.email, password);
+      const { user, session } = await signIn(formData.email, formData.password);
       console.log('SignIn response:', { user: user?.email, hasSession: !!session });
       
       if (user) {
