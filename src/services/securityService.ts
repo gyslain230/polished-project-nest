@@ -37,24 +37,35 @@ class SecurityService {
     }
   }
 
-  // Enhanced admin verification
+  // Enhanced admin verification with better error handling
   async verifyAdminAccess(userId: string): Promise<boolean> {
     try {
       // Get user from auth
       const { data: { user }, error } = await supabase.auth.getUser();
       
       if (error || !user) {
+        console.log('Admin verification failed: No authenticated user');
         return false;
       }
       
       // Verify the user ID matches
       if (user.id !== userId) {
+        console.log('Admin verification failed: User ID mismatch');
         return false;
       }
       
-      // Check if user email is the designated admin
-      const adminEmail = 'gislainrugira@gmail.com';
-      return user.email === adminEmail && user.email_confirmed_at !== null;
+      // Use the database function to check admin status
+      const { data, error: adminError } = await supabase.rpc('is_admin', { user_id: userId });
+      
+      if (adminError) {
+        console.error('Error checking admin status:', adminError);
+        return false;
+      }
+      
+      const isAdmin = data === true;
+      console.log(`Admin verification for ${user.email}: ${isAdmin}`);
+      
+      return isAdmin && user.email_confirmed_at !== null;
     } catch (error) {
       console.error('Error verifying admin access:', error);
       return false;
@@ -121,16 +132,37 @@ class SecurityService {
     return this.MAX_LOGIN_ATTEMPTS - attempt.count;
   }
 
-  // Secure login with enhanced validation
+  // Enhanced input validation with additional security checks
+  private validateInput(email: string, password: string): { valid: boolean; error?: string } {
+    // Enhanced email validation
+    if (!validateEmail(email)) {
+      return { valid: false, error: "Invalid email format" };
+    }
+    
+    // Check for suspicious patterns
+    if (email.includes('<') || email.includes('>') || email.includes('script')) {
+      return { valid: false, error: "Invalid email format" };
+    }
+    
+    // Enhanced password validation
+    if (!password || password.length < 6) {
+      return { valid: false, error: "Password must be at least 6 characters" };
+    }
+    
+    if (password.length > 128) {
+      return { valid: false, error: "Password too long" };
+    }
+    
+    return { valid: true };
+  }
+
+  // Secure login with enhanced validation and error handling
   async secureLogin(email: string, password: string): Promise<{ success: boolean; error?: string; user?: any }> {
     try {
-      // Validate input format
-      if (!validateEmail(email)) {
-        return { success: false, error: "Invalid email format" };
-      }
-      
-      if (!password || password.length < 6) {
-        return { success: false, error: "Invalid password" };
+      // Enhanced input validation
+      const validation = this.validateInput(email, password);
+      if (!validation.valid) {
+        return { success: false, error: validation.error };
       }
       
       const emailKey = email.trim().toLowerCase();
@@ -176,9 +208,18 @@ class SecurityService {
         return { success: false, error: "Login failed" };
       }
       
+      // Verify admin access for this application
+      const isAdmin = await this.verifyAdminAccess(data.user.id);
+      if (!isAdmin) {
+        // Sign out the user since they're not authorized for admin access
+        await supabase.auth.signOut();
+        this.recordLoginAttempt(emailKey, false);
+        return { success: false, error: "Access denied. This application is restricted to authorized administrators only." };
+      }
+      
       // Record successful attempt
       this.recordLoginAttempt(emailKey, true);
-      console.log(`Successful login for ${emailKey}`);
+      console.log(`Successful admin login for ${emailKey}`);
       
       return { success: true, user: data.user };
     } catch (error) {
@@ -187,8 +228,8 @@ class SecurityService {
     }
   }
 
-  // Session validation
-  async validateSession(): Promise<{ valid: boolean; user?: any }> {
+  // Enhanced session validation
+  async validateSession(): Promise<{ valid: boolean; user?: any; isAdmin?: boolean }> {
     try {
       const { data: { session }, error } = await supabase.auth.getSession();
       
@@ -202,21 +243,59 @@ class SecurityService {
         return { valid: false };
       }
       
-      return { valid: true, user: session.user };
+      // Verify admin access for ongoing session
+      const isAdmin = await this.verifyAdminAccess(session.user.id);
+      if (!isAdmin) {
+        // Sign out if admin access has been revoked
+        await supabase.auth.signOut();
+        return { valid: false };
+      }
+      
+      return { valid: true, user: session.user, isAdmin };
     } catch (error) {
       console.error('Session validation error:', error);
       return { valid: false };
     }
   }
 
-  // Secure logout
+  // Secure logout with cleanup
   async secureLogout(): Promise<void> {
     try {
       await supabase.auth.signOut();
+      // Clear any sensitive data from localStorage
+      this.clearSecurityData();
     } catch (error) {
       console.error('Logout error:', error);
       // Force local session clear even if remote logout fails
       localStorage.removeItem('supabase.auth.token');
+      this.clearSecurityData();
+    }
+  }
+
+  // Clear security-related data
+  private clearSecurityData(): void {
+    try {
+      // Only clear login attempts data, not other app data
+      localStorage.removeItem(this.STORAGE_KEY);
+    } catch (error) {
+      console.error('Error clearing security data:', error);
+    }
+  }
+
+  // Log security events for monitoring
+  async logSecurityEvent(action: string, description: string): Promise<void> {
+    try {
+      // Only log if user is admin (since logs table requires admin access)
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && await this.verifyAdminAccess(user.id)) {
+        await supabase.from('logs').insert({
+          action,
+          description: `${description} - ${new Date().toISOString()}`
+        });
+      }
+    } catch (error) {
+      // Silently fail for logging to not affect main functionality
+      console.error('Security logging error:', error);
     }
   }
 }
