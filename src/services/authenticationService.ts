@@ -44,6 +44,7 @@ class AuthenticationService {
   // Secure login with enhanced validation and error handling
   async secureLogin(email: string, password: string): Promise<LoginResult> {
     try {
+      console.log('=== AUTHENTICATION SERVICE LOGIN START ===');
       console.log('Starting secure login for:', email);
       
       // Enhanced input validation
@@ -109,9 +110,12 @@ class AuthenticationService {
         return { success: false, error: "Login failed - no user data" };
       }
       
-      console.log('Supabase authentication successful, checking admin access...');
+      console.log('Supabase authentication successful for:', data.user.email);
+      console.log('User ID:', data.user.id);
+      console.log('Email confirmed:', data.user.email_confirmed_at !== null);
       
       // Verify admin access for this application
+      console.log('Checking admin access...');
       const isAdmin = await adminVerificationService.verifyAdminAccess(data.user.id);
       console.log('Admin verification result:', isAdmin);
       
@@ -120,12 +124,25 @@ class AuthenticationService {
         console.log('User is not admin, signing out...');
         await supabase.auth.signOut();
         rateLimitService.recordLoginAttempt(emailKey, false);
-        return { success: false, error: "Access denied. This application is restricted to authorized administrators only." };
+        
+        // Provide more specific error message based on the issue
+        let errorMessage = "Access denied. This application is restricted to authorized administrators only.";
+        
+        if (!data.user.email_confirmed_at) {
+          errorMessage = "Please confirm your email address before accessing the admin panel.";
+        } else if (data.user.email !== 'gislainrugira@gmail.com') {
+          errorMessage = "Access denied. Only the authorized administrator can access this application.";
+        } else {
+          errorMessage = "Access denied. Your account may not be properly configured as an administrator. Please contact support.";
+        }
+        
+        return { success: false, error: errorMessage };
       }
       
       // Record successful attempt
       rateLimitService.recordLoginAttempt(emailKey, true);
       console.log(`Successful admin login for ${emailKey}`);
+      console.log('=== AUTHENTICATION SERVICE LOGIN END ===');
       
       return { success: true, user: data.user };
     } catch (error) {
