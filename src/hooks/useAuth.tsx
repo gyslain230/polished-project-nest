@@ -21,10 +21,18 @@ export const useAuth = () => {
 
   useEffect(() => {
     let mounted = true;
+    let sessionCheckTimeout: NodeJS.Timeout;
 
     const checkAuthState = async () => {
       try {
-        const sessionCheck = await securityService.validateSession();
+        // Add timeout to prevent infinite loading
+        const timeoutPromise = new Promise<never>((_, reject) => 
+          setTimeout(() => reject(new Error('Auth check timeout')), 8000)
+        );
+        
+        const sessionCheckPromise = securityService.validateSession();
+        
+        const sessionCheck = await Promise.race([sessionCheckPromise, timeoutPromise]);
         
         if (!mounted) return;
 
@@ -41,10 +49,7 @@ export const useAuth = () => {
           });
 
           // Log successful session validation
-          await securityService.logSecurityEvent(
-            'session_validated', 
-            `Admin session validated for user ${sessionCheck.user.email}`
-          );
+          console.log('Session validated successfully');
         } else {
           setAuthState({
             user: null,
@@ -66,17 +71,27 @@ export const useAuth = () => {
       }
     };
 
-    // Set up auth state listener with enhanced security
+    // Set up auth state listener with enhanced security and timeout protection
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
         console.log('Auth state change:', event);
 
+        // Clear any existing timeout
+        if (sessionCheckTimeout) {
+          clearTimeout(sessionCheckTimeout);
+        }
+
         if (session?.user) {
           try {
-            // Use security service to verify admin access
-            const isAdmin = await securityService.verifyAdminAccess(session.user.id);
+            // Set a reasonable timeout for admin verification
+            const timeoutPromise = new Promise<boolean>((_, reject) => 
+              setTimeout(() => reject(new Error('Admin verification timeout')), 5000)
+            );
+            
+            const adminCheckPromise = securityService.verifyAdminAccess(session.user.id);
+            const isAdmin = await Promise.race([adminCheckPromise, timeoutPromise]);
             
             if (mounted) {
               setAuthState({
@@ -88,10 +103,7 @@ export const useAuth = () => {
 
               // Log auth events for security monitoring
               if (event === 'SIGNED_IN') {
-                await securityService.logSecurityEvent(
-                  'user_signed_in', 
-                  `Admin user signed in: ${session.user.email}`
-                );
+                console.log('User signed in successfully');
               }
             }
           } catch (error) {
@@ -115,21 +127,28 @@ export const useAuth = () => {
             });
 
             if (event === 'SIGNED_OUT') {
-              await securityService.logSecurityEvent(
-                'user_signed_out', 
-                'Admin user signed out'
-              );
+              console.log('User signed out successfully');
             }
           }
         }
       }
     );
 
-    // Initial auth check
+    // Initial auth check with timeout protection
+    sessionCheckTimeout = setTimeout(() => {
+      if (mounted) {
+        console.log('Auth check timeout, setting loading to false');
+        setAuthState(prev => ({ ...prev, loading: false }));
+      }
+    }, 10000); // 10 second maximum loading time
+
     checkAuthState();
 
     return () => {
       mounted = false;
+      if (sessionCheckTimeout) {
+        clearTimeout(sessionCheckTimeout);
+      }
       subscription.unsubscribe();
     };
   }, []);

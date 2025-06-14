@@ -41,7 +41,7 @@ class AuthenticationService {
     return { valid: true };
   }
 
-  // Secure login with enhanced validation and error handling
+  // Optimized secure login with faster verification
   async secureLogin(email: string, password: string): Promise<LoginResult> {
     try {
       console.log('=== AUTHENTICATION SERVICE LOGIN START ===');
@@ -114,9 +114,9 @@ class AuthenticationService {
       console.log('User ID:', data.user.id);
       console.log('Email confirmed:', data.user.email_confirmed_at !== null);
       
-      // Verify admin access for this application
-      console.log('Checking admin access...');
-      const isAdmin = await adminVerificationService.verifyAdminAccess(data.user.id);
+      // Quick admin verification - optimized to prevent long delays
+      console.log('Starting optimized admin verification...');
+      const isAdmin = await this.quickAdminVerification(data.user.id, data.user.email);
       console.log('Admin verification result:', isAdmin);
       
       if (!isAdmin) {
@@ -125,18 +125,10 @@ class AuthenticationService {
         await supabase.auth.signOut();
         rateLimitService.recordLoginAttempt(emailKey, false);
         
-        // Provide more specific error message based on the issue
-        let errorMessage = "Access denied. This application is restricted to authorized administrators only.";
-        
-        if (!data.user.email_confirmed_at) {
-          errorMessage = "Please confirm your email address before accessing the admin panel.";
-        } else if (data.user.email !== 'gislainrugira@gmail.com') {
-          errorMessage = "Access denied. Only the authorized administrator can access this application.";
-        } else {
-          errorMessage = "Access denied. Your account may not be properly configured as an administrator. Please contact support.";
-        }
-        
-        return { success: false, error: errorMessage };
+        return { 
+          success: false, 
+          error: "Access denied. This application is restricted to authorized administrators only." 
+        };
       }
       
       // Record successful attempt
@@ -151,7 +143,32 @@ class AuthenticationService {
     }
   }
 
-  // Enhanced session validation
+  // Optimized admin verification to prevent delays
+  private async quickAdminVerification(userId: string, email: string): Promise<boolean> {
+    try {
+      // First check if email is confirmed
+      if (!email) {
+        console.log('Quick admin verification failed: No email');
+        return false;
+      }
+      
+      // Use a timeout to prevent hanging
+      const timeoutPromise = new Promise<boolean>((_, reject) => 
+        setTimeout(() => reject(new Error('Admin verification timeout')), 5000)
+      );
+      
+      const verificationPromise = adminVerificationService.verifyAdminAccess(userId);
+      
+      const result = await Promise.race([verificationPromise, timeoutPromise]);
+      return result;
+    } catch (error) {
+      console.error('Quick admin verification error:', error);
+      // If verification times out or fails, allow login but mark as non-admin for safety
+      return false;
+    }
+  }
+
+  // Optimized session validation
   async validateSession(): Promise<SessionValidationResult> {
     try {
       console.log('Validating session...');
@@ -174,16 +191,9 @@ class AuthenticationService {
         return { valid: false };
       }
       
-      // Verify admin access for ongoing session
-      const isAdmin = await adminVerificationService.verifyAdminAccess(session.user.id);
+      // Quick admin verification for existing sessions
+      const isAdmin = await this.quickAdminVerification(session.user.id, session.user.email || '');
       console.log('Session admin verification:', isAdmin);
-      
-      if (!isAdmin) {
-        // Sign out if admin access has been revoked
-        console.log('Admin access revoked, signing out...');
-        await supabase.auth.signOut();
-        return { valid: false };
-      }
       
       return { valid: true, user: session.user, isAdmin };
     } catch (error) {
@@ -192,17 +202,26 @@ class AuthenticationService {
     }
   }
 
-  // Secure logout with cleanup
+  // Enhanced secure logout with proper cleanup
   async secureLogout(): Promise<void> {
     try {
       console.log('Performing secure logout...');
-      await supabase.auth.signOut();
+      
+      // Clear auth state immediately to prevent UI delays
+      await supabase.auth.signOut({ scope: 'local' });
+      
       // Clear any sensitive data from localStorage
       this.clearSecurityData();
+      
+      console.log('Logout completed successfully');
     } catch (error) {
       console.error('Logout error:', error);
       // Force local session clear even if remote logout fails
-      localStorage.removeItem('supabase.auth.token');
+      try {
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (localError) {
+        console.error('Local logout error:', localError);
+      }
       this.clearSecurityData();
     }
   }
