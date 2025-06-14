@@ -13,6 +13,8 @@ interface StatsCardProps {
 }
 
 const StatsCard = ({ title, value, icon, link, loading }: StatsCardProps) => {
+  console.log(`StatsCard for ${title}: value=${value}, loading=${loading}`);
+  
   return (
     <Card className="border border-border">
       <CardHeader className="pb-2">
@@ -26,7 +28,7 @@ const StatsCard = ({ title, value, icon, link, loading }: StatsCardProps) => {
             {loading ? (
               <span className="animate-pulse">...</span>
             ) : (
-              value
+              <span>{value}</span>
             )}
           </div>
           <div className="bg-primary/10 p-2 rounded-full">

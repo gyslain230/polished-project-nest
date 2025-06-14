@@ -64,21 +64,37 @@ export const useDashboardData = (): DashboardData => {
           setMessageCount(messagesCount);
         }
         
-        // Fetch profile count with better error handling
+        // Fetch profile count with enhanced error handling and logging
+        console.log('Fetching profile count...');
         const { count: profsCount, error: profsError } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
         
+        console.log('Profile count query result:', { profsCount, profsError });
+        
         if (profsError) {
-          console.error('Profile count error:', profsError);
-          throw profsError;
+          console.error('Profile count error details:', profsError);
+          // Don't throw error, just set count to 0 and continue
+          setProfileCount(0);
+        } else {
+          console.log('Raw profiles count from database:', profsCount);
+          const finalCount = profsCount ?? 0;
+          console.log('Setting profile count to:', finalCount);
+          setProfileCount(finalCount);
         }
         
-        console.log('Profiles count from database:', profsCount);
-        if (profsCount !== null) {
-          setProfileCount(profsCount);
-        } else {
-          setProfileCount(0);
+        // Also try alternative method to verify count
+        try {
+          const { data: profilesData, error: profilesDataError } = await supabase
+            .from('profiles')
+            .select('id');
+          
+          if (!profilesDataError && profilesData) {
+            console.log('Verification: Profile records found:', profilesData.length);
+            console.log('Profile IDs:', profilesData.map(p => p.id));
+          }
+        } catch (verifyError) {
+          console.log('Verification query failed:', verifyError);
         }
         
         // Generate recent activities
