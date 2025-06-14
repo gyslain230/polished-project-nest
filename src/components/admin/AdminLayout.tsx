@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { Home, FileText, Award, LogOut, Mail, Menu, User, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { InactivityWarningComponent } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -70,6 +72,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
 
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
+      {/* Inactivity Warning Dialog */}
+      <InactivityWarningComponent />
+
       {/* Mobile menu button */}
       <div className="md:hidden fixed top-4 left-4 z-50">
         <Button

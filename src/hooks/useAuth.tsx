@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { securityService } from '@/services/securityService';
+import { useInactivityTracker } from './useInactivityTracker';
+import InactivityWarning from '@/components/auth/InactivityWarning';
 
 interface AuthState {
   user: User | null;
@@ -18,6 +20,13 @@ export const useAuth = () => {
     isAdmin: false,
     loading: true
   });
+
+  const {
+    showWarning,
+    timeLeft,
+    extendSession,
+    handleSignOut
+  } = useInactivityTracker(!!authState.user);
 
   useEffect(() => {
     let mounted = true;
@@ -153,5 +162,15 @@ export const useAuth = () => {
     };
   }, []);
 
-  return authState;
+  return {
+    ...authState,
+    InactivityWarningComponent: () => (
+      <InactivityWarning
+        isOpen={showWarning}
+        timeLeft={timeLeft}
+        onExtend={extendSession}
+        onSignOut={handleSignOut}
+      />
+    )
+  };
 };
