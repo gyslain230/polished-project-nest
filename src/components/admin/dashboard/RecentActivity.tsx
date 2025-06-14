@@ -1,10 +1,6 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-interface Activity {
-  action: string;
-  date: string;
-}
+import { Activity } from "@/types/dashboard";
 
 interface RecentActivityProps {
   activities: Activity[];

@@ -1,21 +1,9 @@
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
-
-interface Activity {
-  action: string;
-  date: string;
-}
-
-interface DashboardData {
-  projectCount: number;
-  certificateCount: number;
-  messageCount: number;
-  profileCount: number;
-  recentActivities: Activity[];
-  loading: boolean;
-}
+import { DashboardData, Activity } from "@/types/dashboard";
+import { dashboardCountsService } from "@/services/dashboardCountsService";
+import { dashboardActivitiesService } from "@/services/dashboardActivitiesService";
 
 export const useDashboardData = (): DashboardData => {
   const { toast } = useToast();
@@ -27,127 +15,21 @@ export const useDashboardData = (): DashboardData => {
   const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
 
   useEffect(() => {
-    const fetchCounts = async () => {
+    const fetchDashboardData = async () => {
       try {
         setLoading(true);
 
-        const { count: projectsCount, error: projectsError } = await supabase
-          .from('projects')
-          .select('*', { count: 'exact', head: true });
-        
-        if (projectsError) throw projectsError;
-        if (projectsCount !== null) {
-          setProjectCount(projectsCount);
-        }
-        
-        const { count: certsCount, error: certsError } = await supabase
-          .from('certificates')
-          .select('*', { count: 'exact', head: true });
-        
-        if (certsError) throw certsError;
-        if (certsCount !== null) {
-          setCertificateCount(certsCount);
-        }
-        
-        const { count: messagesCount, error: msgsError } = await supabase
-          .from('messages')
-          .select('*', { count: 'exact', head: true });
-        
-        if (msgsError) throw msgsError;
-        if (messagesCount !== null) {
-          setMessageCount(messagesCount);
-        }
-        
-        const { count: profsCount, error: profsError } = await supabase
-          .from('profiles')
-          .select('*', { count: 'exact', head: true });
-        
-        if (profsError) {
-          console.error('Profile count error details:', profsError);
-          setProfileCount(0);
-        } else {
-          const finalCount = profsCount ?? 0;
-          setProfileCount(finalCount);
-        }
-        
-        const activities: Activity[] = [];
-        
-        const { data: recentProjects, error: recentProjectsError } = await supabase
-          .from('projects')
-          .select('title, created_at')
-          .order('created_at', { ascending: false })
-          .limit(2);
-        
-        if (recentProjectsError) throw recentProjectsError;
-        
-        if (recentProjects && recentProjects.length > 0) {
-          recentProjects.forEach(project => {
-            const date = new Date(project.created_at).toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            });
-            activities.push({
-              action: `Added project: ${project.title}`,
-              date
-            });
-          });
-        }
-        
-        const { data: recentCerts, error: recentCertsError } = await supabase
-          .from('certificates')
-          .select('title, created_at')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        if (recentCertsError) throw recentCertsError;
-        
-        if (recentCerts && recentCerts.length > 0) {
-          const date = new Date(recentCerts[0].created_at).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          activities.push({
-            action: `Added certificate: ${recentCerts[0].title}`,
-            date
-          });
-        }
-        
-        const { data: recentMsgs, error: recentMsgsError } = await supabase
-          .from('messages')
-          .select('name, created_at')
-          .order('created_at', { ascending: false })
-          .limit(1);
-        
-        if (recentMsgsError) throw recentMsgsError;
-        
-        if (recentMsgs && recentMsgs.length > 0) {
-          const date = new Date(recentMsgs[0].created_at).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-          });
-          activities.push({
-            action: `Received message from: ${recentMsgs[0].name}`,
-            date
-          });
-        }
-        
-        if (activities.length < 3) {
-          const defaultActivities = [
-            { action: "Dashboard initialized", date: "Today" },
-            { action: "Profile updated", date: "Yesterday" },
-            { action: "System maintenance", date: "2 days ago" }
-          ];
-          
-          const neededDefaults = 3 - activities.length;
-          activities.push(...defaultActivities.slice(0, neededDefaults));
-        }
-        
+        const [counts, activities] = await Promise.all([
+          dashboardCountsService.fetchAllCounts(),
+          dashboardActivitiesService.fetchRecentActivities()
+        ]);
+
+        setProjectCount(counts.projectCount);
+        setCertificateCount(counts.certificateCount);
+        setMessageCount(counts.messageCount);
+        setProfileCount(counts.profileCount);
         setRecentActivities(activities);
       } catch (error) {
-        console.error('Error fetching dashboard data:', error);
         toast({
           title: "Error",
           description: "Failed to load dashboard data. Please try again later.",
@@ -158,7 +40,7 @@ export const useDashboardData = (): DashboardData => {
       }
     };
 
-    fetchCounts();
+    fetchDashboardData();
   }, [toast]);
 
   return {
