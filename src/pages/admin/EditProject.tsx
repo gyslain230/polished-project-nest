@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/components/ui/use-toast";
 import AdminLayout from "@/components/admin/AdminLayout";
+import ProjectImageUpload from "@/components/admin/project/ProjectImageUpload";
 import { ArrowLeft, Save, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -88,6 +89,10 @@ const EditProject = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleImageChange = (url: string) => {
+    setFormData(prev => ({ ...prev, image: url }));
   };
 
   const handleAddTag = (e: React.KeyboardEvent) => {
@@ -209,19 +214,10 @@ const EditProject = () => {
             />
           </div>
           
-          <div className="space-y-2">
-            <label htmlFor="image" className="text-sm font-medium">
-              Image URL
-            </label>
-            <Input
-              id="image"
-              name="image"
-              value={formData.image}
-              onChange={handleChange}
-              placeholder="https://example.com/image.jpg"
-              required
-            />
-          </div>
+          <ProjectImageUpload 
+            currentImageUrl={formData.image}
+            onImageChange={handleImageChange}
+          />
           
           <div className="space-y-2">
             <label htmlFor="tags" className="text-sm font-medium">

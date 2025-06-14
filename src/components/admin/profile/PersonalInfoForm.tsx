@@ -30,22 +30,6 @@ const PersonalInfoForm = ({ profile, handleChange }: PersonalInfoFormProps) => {
         </div>
         
         <div className="flex-1 space-y-4">
-          <div>
-            <label htmlFor="profile_image" className="block text-sm font-medium mb-1">
-              Profile Image URL
-            </label>
-            <Input
-              id="profile_image"
-              name="profile_image"
-              value={profile.profile_image || ""}
-              onChange={handleChange}
-              placeholder="https://example.com/your-image.jpg"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Enter a direct URL to your profile image
-            </p>
-          </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium mb-1">
