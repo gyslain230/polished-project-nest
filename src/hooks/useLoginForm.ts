@@ -30,7 +30,6 @@ export const useLoginForm = () => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
     
-    // Clear errors when user starts typing
     if (errors[name as keyof FormErrors]) {
       setErrors(prev => ({ ...prev, [name]: undefined }));
     }
@@ -63,16 +62,7 @@ export const useLoginForm = () => {
     setIsLoading(true);
     
     try {
-      console.log('=== LOGIN ATTEMPT START ===');
-      console.log('Email:', formData.email);
-      console.log('Password length:', formData.password.length);
-      
       const { user, session } = await signIn(formData.email, formData.password);
-      
-      console.log('=== LOGIN RESULT ===');
-      console.log('User:', user?.email);
-      console.log('Session exists:', !!session);
-      console.log('User ID:', user?.id);
       
       if (user && session) {
         toast({
@@ -80,17 +70,11 @@ export const useLoginForm = () => {
           description: `Welcome back, ${user.email}!`,
         });
         
-        console.log('Redirecting to admin dashboard...');
         navigate("/admin/dashboard");
       } else {
         throw new Error("Login failed - incomplete authentication data");
       }
     } catch (error: any) {
-      console.error('=== LOGIN ERROR ===');
-      console.error('Error object:', error);
-      console.error('Error message:', error.message);
-      console.error('Error stack:', error.stack);
-      
       let errorMessage = "Login failed. Please check your credentials.";
       
       if (error.message.includes("Invalid credentials") || error.message.includes("incorrect")) {

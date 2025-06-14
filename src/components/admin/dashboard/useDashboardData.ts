@@ -31,76 +31,47 @@ export const useDashboardData = (): DashboardData => {
       try {
         setLoading(true);
 
-        // Fetch project count
         const { count: projectsCount, error: projectsError } = await supabase
           .from('projects')
           .select('*', { count: 'exact', head: true });
         
         if (projectsError) throw projectsError;
         if (projectsCount !== null) {
-          console.log('Projects count:', projectsCount);
           setProjectCount(projectsCount);
         }
         
-        // Fetch certificate count
         const { count: certsCount, error: certsError } = await supabase
           .from('certificates')
           .select('*', { count: 'exact', head: true });
         
         if (certsError) throw certsError;
         if (certsCount !== null) {
-          console.log('Certificates count:', certsCount);
           setCertificateCount(certsCount);
         }
         
-        // Fetch message count
         const { count: messagesCount, error: msgsError } = await supabase
           .from('messages')
           .select('*', { count: 'exact', head: true });
         
         if (msgsError) throw msgsError;
         if (messagesCount !== null) {
-          console.log('Messages count:', messagesCount);
           setMessageCount(messagesCount);
         }
         
-        // Fetch profile count with enhanced error handling and logging
-        console.log('Fetching profile count...');
         const { count: profsCount, error: profsError } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
         
-        console.log('Profile count query result:', { profsCount, profsError });
-        
         if (profsError) {
           console.error('Profile count error details:', profsError);
-          // Don't throw error, just set count to 0 and continue
           setProfileCount(0);
         } else {
-          console.log('Raw profiles count from database:', profsCount);
           const finalCount = profsCount ?? 0;
-          console.log('Setting profile count to:', finalCount);
           setProfileCount(finalCount);
         }
         
-        // Also try alternative method to verify count
-        try {
-          const { data: profilesData, error: profilesDataError } = await supabase
-            .from('profiles')
-            .select('id');
-          
-          if (!profilesDataError && profilesData) {
-            console.log('Verification: Profile records found:', profilesData.length);
-            console.log('Profile IDs:', profilesData.map(p => p.id));
-          }
-        } catch (verifyError) {
-          console.log('Verification query failed:', verifyError);
-        }
-        
-        // Generate recent activities
         const activities: Activity[] = [];
         
-        // Get recent projects
         const { data: recentProjects, error: recentProjectsError } = await supabase
           .from('projects')
           .select('title, created_at')
@@ -123,7 +94,6 @@ export const useDashboardData = (): DashboardData => {
           });
         }
         
-        // Get recent certificates
         const { data: recentCerts, error: recentCertsError } = await supabase
           .from('certificates')
           .select('title, created_at')
@@ -144,7 +114,6 @@ export const useDashboardData = (): DashboardData => {
           });
         }
         
-        // Get recent messages
         const { data: recentMsgs, error: recentMsgsError } = await supabase
           .from('messages')
           .select('name, created_at')
@@ -165,7 +134,6 @@ export const useDashboardData = (): DashboardData => {
           });
         }
         
-        // If we don't have enough real activities, add some default ones
         if (activities.length < 3) {
           const defaultActivities = [
             { action: "Dashboard initialized", date: "Today" },

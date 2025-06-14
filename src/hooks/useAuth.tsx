@@ -34,7 +34,6 @@ export const useAuth = () => {
 
     const checkAuthState = async () => {
       try {
-        // Increase timeout to prevent premature failures
         const timeoutPromise = new Promise<never>((_, reject) => 
           setTimeout(() => reject(new Error('Auth check timeout')), 15000)
         );
@@ -56,8 +55,6 @@ export const useAuth = () => {
             isAdmin: sessionCheck.isAdmin || false,
             loading: false
           });
-
-          console.log('Session validated successfully');
         } else {
           setAuthState({
             user: null,
@@ -79,24 +76,18 @@ export const useAuth = () => {
       }
     };
 
-    // Enhanced auth state listener with better error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
 
-        console.log('Auth state change:', event);
-
-        // Clear any existing timeout
         if (sessionCheckTimeout) {
           clearTimeout(sessionCheckTimeout);
         }
 
         if (session?.user) {
           try {
-            // Significantly increase timeout and add graceful fallback
             const timeoutPromise = new Promise<boolean>((resolve) => 
               setTimeout(() => {
-                console.log('Admin verification timeout, defaulting to false');
                 resolve(false);
               }, 12000)
             );
@@ -111,19 +102,14 @@ export const useAuth = () => {
                 isAdmin,
                 loading: false
               });
-
-              if (event === 'SIGNED_IN') {
-                console.log('User signed in successfully');
-              }
             }
           } catch (error) {
             console.error('Error checking admin status:', error);
-            // Don't fail the entire auth process due to admin check failure
             if (mounted) {
               setAuthState({
                 user: session.user,
                 session,
-                isAdmin: false, // Default to false on error
+                isAdmin: false,
                 loading: false
               });
             }
@@ -136,22 +122,16 @@ export const useAuth = () => {
               isAdmin: false,
               loading: false
             });
-
-            if (event === 'SIGNED_OUT') {
-              console.log('User signed out successfully');
-            }
           }
         }
       }
     );
 
-    // Increased timeout for initial auth check
     sessionCheckTimeout = setTimeout(() => {
       if (mounted) {
-        console.log('Auth check timeout, setting loading to false');
         setAuthState(prev => ({ ...prev, loading: false }));
       }
-    }, 15000); // Increased from 10 to 15 seconds
+    }, 15000);
 
     checkAuthState();
 
