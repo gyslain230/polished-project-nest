@@ -112,3 +112,4 @@ class AdminVerificationService {
 }
 
 export const adminVerificationService = new AdminVerificationService();
+export { adminCacheService };
