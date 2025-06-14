@@ -4,6 +4,8 @@ import DashboardStats from "@/components/admin/dashboard/DashboardStats";
 import RecentActivity from "@/components/admin/dashboard/RecentActivity";
 import QuickActions from "@/components/admin/dashboard/QuickActions";
 import { useDashboardData } from "@/components/admin/dashboard/useDashboardData";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 const Dashboard = () => {
   const {
@@ -15,10 +17,25 @@ const Dashboard = () => {
     loading
   } = useDashboardData();
 
+  const handleRefresh = () => {
+    window.location.reload();
+  };
+
   return (
     <AdminLayout>
       <div className="p-6">
-        <h1 className="text-2xl font-bold mb-6">Admin Dashboard</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <Button 
+            onClick={handleRefresh}
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        </div>
         
         <DashboardStats
           projectCount={projectCount}

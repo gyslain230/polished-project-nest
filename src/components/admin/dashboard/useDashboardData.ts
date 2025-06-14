@@ -37,7 +37,10 @@ export const useDashboardData = (): DashboardData => {
           .select('*', { count: 'exact', head: true });
         
         if (projectsError) throw projectsError;
-        if (projectsCount !== null) setProjectCount(projectsCount);
+        if (projectsCount !== null) {
+          console.log('Projects count:', projectsCount);
+          setProjectCount(projectsCount);
+        }
         
         // Fetch certificate count
         const { count: certsCount, error: certsError } = await supabase
@@ -45,23 +48,38 @@ export const useDashboardData = (): DashboardData => {
           .select('*', { count: 'exact', head: true });
         
         if (certsError) throw certsError;
-        if (certsCount !== null) setCertificateCount(certsCount);
+        if (certsCount !== null) {
+          console.log('Certificates count:', certsCount);
+          setCertificateCount(certsCount);
+        }
         
         // Fetch message count
-        const { data: messagesData, error: msgsError } = await supabase
+        const { count: messagesCount, error: msgsError } = await supabase
           .from('messages')
-          .select('id');
+          .select('*', { count: 'exact', head: true });
         
         if (msgsError) throw msgsError;
-        if (messagesData) setMessageCount(messagesData.length);
+        if (messagesCount !== null) {
+          console.log('Messages count:', messagesCount);
+          setMessageCount(messagesCount);
+        }
         
-        // Fetch profile count
+        // Fetch profile count with better error handling
         const { count: profsCount, error: profsError } = await supabase
           .from('profiles')
           .select('*', { count: 'exact', head: true });
         
-        if (profsError) throw profsError;
-        if (profsCount !== null) setProfileCount(profsCount);
+        if (profsError) {
+          console.error('Profile count error:', profsError);
+          throw profsError;
+        }
+        
+        console.log('Profiles count from database:', profsCount);
+        if (profsCount !== null) {
+          setProfileCount(profsCount);
+        } else {
+          setProfileCount(0);
+        }
         
         // Generate recent activities
         const activities: Activity[] = [];
@@ -134,9 +152,9 @@ export const useDashboardData = (): DashboardData => {
         // If we don't have enough real activities, add some default ones
         if (activities.length < 3) {
           const defaultActivities = [
-            { action: "Added new project", date: "Today, 12:30 PM" },
-            { action: "Updated about section", date: "Yesterday, 3:15 PM" },
-            { action: "Uploaded new certificate", date: "May 10, 2023" }
+            { action: "Dashboard initialized", date: "Today" },
+            { action: "Profile updated", date: "Yesterday" },
+            { action: "System maintenance", date: "2 days ago" }
           ];
           
           const neededDefaults = 3 - activities.length;
