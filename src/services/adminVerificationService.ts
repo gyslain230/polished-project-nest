@@ -1,114 +1,113 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { networkRetryService } from "./networkRetryService";
+import { adminCacheService } from "./adminCacheService";
 
 class AdminVerificationService {
   async verifyAdminAccess(userId: string): Promise<boolean> {
     try {
-      const userPromise = supabase.auth.getUser();
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('User fetch timeout')), 5000)
+      // Check cache first
+      const cachedResult = adminCacheService.get(userId);
+      if (cachedResult !== null) {
+        return cachedResult;
+      }
+
+      // Verify user authentication with retry
+      const user = await networkRetryService.executeWithRetry(
+        async () => {
+          const { data: { user }, error } = await supabase.auth.getUser();
+          if (error || !user) {
+            throw new Error('User authentication failed');
+          }
+          return user;
+        },
+        { maxRetries: 2, baseDelay: 1000, timeoutMs: 15000 }
       );
       
-      const { data: { user }, error } = await Promise.race([userPromise, timeoutPromise]);
-      
-      if (error || !user) {
-        return false;
-      }
-      
-      if (user.id !== userId) {
-        return false;
-      }
-      
-      if (!user.email_confirmed_at) {
+      if (user.id !== userId || !user.email_confirmed_at) {
+        adminCacheService.set(userId, false, 2 * 60 * 1000); // Cache for 2 minutes
         return false;
       }
 
-      const profilePromise = supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-        
-      const profileTimeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Profile check timeout')), 5000)
-      );
-      
-      const { data: profileData, error: profileError } = await Promise.race([
-        profilePromise, 
-        profileTimeoutPromise
-      ]);
-
-      if (profileError) {
-        if (profileError.code === 'PGRST116') {
-          const insertPromise = supabase
+      // Check/create profile with retry
+      await networkRetryService.executeWithRetry(
+        async () => {
+          const { data: profileData, error: profileError } = await supabase
             .from('profiles')
-            .insert({
-              id: userId,
-              email: user.email,
-              name: user.email.split('@')[0],
-              role: 'Admin'
-            })
-            .select()
+            .select('*')
+            .eq('id', userId)
             .single();
-            
-          const insertTimeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('Profile creation timeout')), 5000)
-          );
 
-          const { error: insertError } = await Promise.race([
-            insertPromise,
-            insertTimeoutPromise
-          ]);
+          if (profileError) {
+            if (profileError.code === 'PGRST116') {
+              const { error: insertError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: userId,
+                  email: user.email,
+                  name: user.email.split('@')[0],
+                  role: 'Admin'
+                })
+                .select()
+                .single();
 
-          if (insertError) {
-            console.error('Failed to create admin profile:', insertError);
-            return false;
+              if (insertError) {
+                throw new Error('Failed to create admin profile');
+              }
+            } else {
+              throw new Error('Profile query error');
+            }
+          } else if (profileData.email !== user.email) {
+            await supabase
+              .from('profiles')
+              .update({ email: user.email })
+              .eq('id', userId);
           }
-        } else {
-          console.error('Profile query error:', profileError);
-          return false;
-        }
-      } else {
-        if (profileData.email !== user.email) {
-          const updatePromise = supabase
-            .from('profiles')
-            .update({ email: user.email })
-            .eq('id', userId);
-            
-          const updateTimeoutPromise = new Promise<never>((_, reject) => 
-            setTimeout(() => reject(new Error('Profile update timeout')), 3000)
-          );
-            
-          try {
-            await Promise.race([updatePromise, updateTimeoutPromise]);
-          } catch (updateError) {
-            console.error('Failed to update profile email:', updateError);
-          }
-        }
-      }
-      
-      const adminPromise = supabase.rpc('is_admin', { user_id: userId });
-      const adminTimeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Admin RPC timeout')), 5000)
+        },
+        { maxRetries: 2, baseDelay: 1500, timeoutMs: 20000 }
       );
       
-      const { data, error: adminError } = await Promise.race([
-        adminPromise,
-        adminTimeoutPromise
-      ]);
+      // Check admin status with retry
+      const isAdmin = await networkRetryService.executeWithRetry(
+        async () => {
+          const { data, error: adminError } = await supabase.rpc('is_admin', { user_id: userId });
+          
+          if (adminError) {
+            throw new Error('Admin status check failed');
+          }
+          
+          return data === true;
+        },
+        { maxRetries: 3, baseDelay: 1000, timeoutMs: 15000 }
+      );
       
-      if (adminError) {
-        console.error('Error checking admin status:', adminError);
-        return false;
-      }
-      
-      const isAdmin = data === true;
+      // Cache the result - longer TTL for admin users
+      const cacheTtl = isAdmin ? 10 * 60 * 1000 : 2 * 60 * 1000; // 10 min for admin, 2 min for non-admin
+      adminCacheService.set(userId, isAdmin, cacheTtl);
       
       return isAdmin;
     } catch (error) {
       console.error('Error verifying admin access:', error);
+      
+      // Check if we have any cached result as fallback
+      const fallbackResult = adminCacheService.get(userId);
+      if (fallbackResult !== null) {
+        console.log('Using cached admin status as fallback');
+        return fallbackResult;
+      }
+      
       return false;
     }
+  }
+
+  // Method to clear cache when user logs out
+  clearCache(userId?: string): void {
+    adminCacheService.clear(userId);
+  }
+
+  // Method to extend cache TTL when user is active
+  extendAdminCache(userId: string): void {
+    adminCacheService.extendTtl(userId);
   }
 }
 

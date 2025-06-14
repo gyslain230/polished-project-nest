@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { adminVerificationService } from "./adminVerificationService";
+import { networkRetryService } from "./networkRetryService";
 
 interface SessionValidationResult {
   valid: boolean;
@@ -9,42 +10,14 @@ interface SessionValidationResult {
 }
 
 class SessionService {
-  private async quickAdminVerification(userId: string, email: string): Promise<boolean> {
-    try {
-      if (!email) {
-        return false;
-      }
-      
-      const timeoutPromise = new Promise<boolean>((resolve) => 
-        setTimeout(() => {
-          resolve(false);
-        }, 10000)
-      );
-      
-      const verificationPromise = adminVerificationService.verifyAdminAccess(userId);
-      
-      const result = await Promise.race([verificationPromise, timeoutPromise]);
-      return result;
-    } catch (error) {
-      console.error('Admin verification error:', error);
-      return false;
-    }
-  }
-
   async validateSession(): Promise<SessionValidationResult> {
     try {
-      const sessionPromise = supabase.auth.getSession();
-      const timeoutPromise = new Promise<never>((_, reject) => 
-        setTimeout(() => reject(new Error('Session check timeout')), 8000)
+      const { data: { session }, error } = await networkRetryService.executeWithRetry(
+        () => supabase.auth.getSession(),
+        { maxRetries: 2, baseDelay: 1000, timeoutMs: 20000 }
       );
       
-      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
-      
-      if (error) {
-        return { valid: false };
-      }
-      
-      if (!session) {
+      if (error || !session) {
         return { valid: false };
       }
       
@@ -54,13 +27,18 @@ class SessionService {
       
       if (expiryTime > 0 && expiryTime - bufferTime < currentTime) {
         try {
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          const { data: refreshData, error: refreshError } = await networkRetryService.executeWithRetry(
+            () => supabase.auth.refreshSession(),
+            { maxRetries: 2, baseDelay: 1500, timeoutMs: 25000 }
+          );
+          
           if (refreshError || !refreshData.session) {
             await supabase.auth.signOut();
             return { valid: false };
           }
+          
           const refreshedSession = refreshData.session;
-          const isAdmin = await this.quickAdminVerification(refreshedSession.user.id, refreshedSession.user.email || '');
+          const isAdmin = await adminVerificationService.verifyAdminAccess(refreshedSession.user.id);
           return { valid: true, user: refreshedSession.user, isAdmin };
         } catch (refreshError) {
           console.error('Error refreshing session:', refreshError);
@@ -69,7 +47,7 @@ class SessionService {
         }
       }
       
-      const isAdmin = await this.quickAdminVerification(session.user.id, session.user.email || '');
+      const isAdmin = await adminVerificationService.verifyAdminAccess(session.user.id);
       
       return { valid: true, user: session.user, isAdmin };
     } catch (error) {

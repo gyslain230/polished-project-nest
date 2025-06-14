@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,7 +15,7 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
   const location = useLocation();
   const { toast } = useToast();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { InactivityWarningComponent } = useAuth();
+  const { InactivityWarningComponent, VerificationProgressComponent } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -29,7 +28,6 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
       
       navigate("/login");
     } catch (error) {
-      console.error("Error logging out:", error);
       toast({
         title: "Error",
         description: "Failed to log out. Please try again.",
@@ -74,6 +72,9 @@ const AdminLayout = ({ children }: AdminLayoutProps) => {
     <div className="min-h-screen flex flex-col md:flex-row bg-background">
       {/* Inactivity Warning Dialog */}
       <InactivityWarningComponent />
+      
+      {/* Verification Progress Indicator */}
+      <VerificationProgressComponent />
 
       {/* Mobile menu button */}
       <div className="md:hidden fixed top-4 left-4 z-50">

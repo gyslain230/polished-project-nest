@@ -31,26 +31,6 @@ class LoginService {
     return { valid: true };
   }
 
-  private async quickAdminVerification(userId: string, email: string): Promise<boolean> {
-    try {
-      if (!email) {
-        return false;
-      }
-      
-      const timeoutPromise = new Promise<boolean>((_, reject) => 
-        setTimeout(() => reject(new Error('Admin verification timeout')), 5000)
-      );
-      
-      const verificationPromise = adminVerificationService.verifyAdminAccess(userId);
-      
-      const result = await Promise.race([verificationPromise, timeoutPromise]);
-      return result;
-    } catch (error) {
-      console.error('Admin verification error:', error);
-      return false;
-    }
-  }
-
   async secureLogin(email: string, password: string): Promise<LoginResult> {
     try {
       const validation = this.validateInput(email, password);
@@ -105,7 +85,8 @@ class LoginService {
         return { success: false, error: "Login failed - no user data" };
       }
       
-      const isAdmin = await this.quickAdminVerification(data.user.id, data.user.email);
+      // Use the improved admin verification
+      const isAdmin = await adminVerificationService.verifyAdminAccess(data.user.id);
       
       if (!isAdmin) {
         await supabase.auth.signOut();
@@ -121,7 +102,6 @@ class LoginService {
       
       return { success: true, user: data.user };
     } catch (error) {
-      console.error('Secure login error:', error);
       return { success: false, error: `Login system error: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   }
