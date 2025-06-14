@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { validateEmail } from "./inputSanitizer";
 import { rateLimitService } from "./rateLimitService";
 import { adminVerificationService } from "./adminVerificationService";
-import { securityLoggingService } from "./securityLoggingService";
 
 interface LoginResult {
   success: boolean;
@@ -30,7 +29,7 @@ class AuthenticationService {
       return { valid: false, error: "Invalid email format" };
     }
     
-    // Enhanced password validation
+    // Enhanced password validation - simplified to match frontend
     if (!password || password.length < 6) {
       return { valid: false, error: "Password must be at least 6 characters" };
     }
@@ -45,9 +44,12 @@ class AuthenticationService {
   // Secure login with enhanced validation and error handling
   async secureLogin(email: string, password: string): Promise<LoginResult> {
     try {
+      console.log('Starting secure login for:', email);
+      
       // Enhanced input validation
       const validation = this.validateInput(email, password);
       if (!validation.valid) {
+        console.log('Input validation failed:', validation.error);
         return { success: false, error: validation.error };
       }
       
@@ -57,6 +59,7 @@ class AuthenticationService {
       const rateLimit = rateLimitService.checkLoginRateLimit(emailKey);
       if (!rateLimit.allowed) {
         const minutes = Math.ceil((rateLimit.remainingTime || 0) / 60000);
+        console.log('Rate limit exceeded for:', emailKey);
         return { 
           success: false, 
           error: `Too many failed login attempts. Account temporarily locked. Try again in ${minutes} minute${minutes !== 1 ? 's' : ''}.` 
@@ -65,7 +68,8 @@ class AuthenticationService {
       
       console.log(`Login attempt for ${emailKey}, attempts: ${rateLimitService.getLoginAttempts().get(emailKey)?.count || 0}/${rateLimitService.MAX_LOGIN_ATTEMPTS}`);
       
-      // Attempt login
+      // Attempt login with Supabase
+      console.log('Attempting Supabase authentication...');
       const { data, error } = await supabase.auth.signInWithPassword({
         email: emailKey,
         password
@@ -75,11 +79,21 @@ class AuthenticationService {
         console.log('Supabase auth error:', error.message);
         rateLimitService.recordLoginAttempt(emailKey, false);
         
+        // Provide more specific error messages
+        let errorMessage = "Invalid credentials";
+        if (error.message.includes("Invalid login credentials")) {
+          errorMessage = "The email or password you entered is incorrect";
+        } else if (error.message.includes("Email not confirmed")) {
+          errorMessage = "Please check your email and confirm your account before logging in";
+        } else if (error.message.includes("Too many requests")) {
+          errorMessage = "Too many login attempts. Please wait before trying again";
+        }
+        
         const remainingAttempts = rateLimitService.getRemainingAttempts(emailKey);
         if (remainingAttempts > 0) {
           return { 
             success: false, 
-            error: `Invalid credentials. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining before temporary lockout.` 
+            error: `${errorMessage}. ${remainingAttempts} attempt${remainingAttempts !== 1 ? 's' : ''} remaining before temporary lockout.` 
           };
         } else {
           return { 
@@ -90,14 +104,20 @@ class AuthenticationService {
       }
       
       if (!data.user) {
+        console.log('No user returned from Supabase');
         rateLimitService.recordLoginAttempt(emailKey, false);
-        return { success: false, error: "Login failed" };
+        return { success: false, error: "Login failed - no user data" };
       }
+      
+      console.log('Supabase authentication successful, checking admin access...');
       
       // Verify admin access for this application
       const isAdmin = await adminVerificationService.verifyAdminAccess(data.user.id);
+      console.log('Admin verification result:', isAdmin);
+      
       if (!isAdmin) {
         // Sign out the user since they're not authorized for admin access
+        console.log('User is not admin, signing out...');
         await supabase.auth.signOut();
         rateLimitService.recordLoginAttempt(emailKey, false);
         return { success: false, error: "Access denied. This application is restricted to authorized administrators only." };
@@ -110,29 +130,40 @@ class AuthenticationService {
       return { success: true, user: data.user };
     } catch (error) {
       console.error('Secure login error:', error);
-      return { success: false, error: "Login system error" };
+      return { success: false, error: `Login system error: ${error instanceof Error ? error.message : 'Unknown error'}` };
     }
   }
 
   // Enhanced session validation
   async validateSession(): Promise<SessionValidationResult> {
     try {
+      console.log('Validating session...');
       const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (error || !session) {
+      if (error) {
+        console.log('Session validation error:', error.message);
+        return { valid: false };
+      }
+      
+      if (!session) {
+        console.log('No active session');
         return { valid: false };
       }
       
       // Check if session is expired
       if (session.expires_at && session.expires_at * 1000 < Date.now()) {
+        console.log('Session expired');
         await supabase.auth.signOut();
         return { valid: false };
       }
       
       // Verify admin access for ongoing session
       const isAdmin = await adminVerificationService.verifyAdminAccess(session.user.id);
+      console.log('Session admin verification:', isAdmin);
+      
       if (!isAdmin) {
         // Sign out if admin access has been revoked
+        console.log('Admin access revoked, signing out...');
         await supabase.auth.signOut();
         return { valid: false };
       }
@@ -147,6 +178,7 @@ class AuthenticationService {
   // Secure logout with cleanup
   async secureLogout(): Promise<void> {
     try {
+      console.log('Performing secure logout...');
       await supabase.auth.signOut();
       // Clear any sensitive data from localStorage
       this.clearSecurityData();

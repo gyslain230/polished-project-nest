@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home, Eye, EyeOff } from "lucide-react";
 import { signIn } from "@/services/authService";
-import { validateEmail, validatePassword } from "@/services/inputSanitizer";
+import { validateEmail } from "@/services/inputSanitizer";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -60,35 +60,48 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log('Attempting login with email:', formData.email);
+      console.log('=== LOGIN ATTEMPT START ===');
+      console.log('Email:', formData.email);
+      console.log('Password length:', formData.password.length);
       
       const { user, session } = await signIn(formData.email, formData.password);
-      console.log('SignIn response:', { user: user?.email, hasSession: !!session });
       
-      if (user) {
+      console.log('=== LOGIN RESULT ===');
+      console.log('User:', user?.email);
+      console.log('Session exists:', !!session);
+      console.log('User ID:', user?.id);
+      
+      if (user && session) {
         toast({
           title: "Login successful",
-          description: "Welcome back!",
+          description: `Welcome back, ${user.email}!`,
         });
         
+        console.log('Redirecting to admin dashboard...');
         navigate("/admin/dashboard");
       } else {
-        throw new Error("Login failed - no user returned");
+        throw new Error("Login failed - incomplete authentication data");
       }
     } catch (error: any) {
-      console.error('Login error details:', {
-        message: error.message,
-        email: formData.email
-      });
+      console.error('=== LOGIN ERROR ===');
+      console.error('Error object:', error);
+      console.error('Error message:', error.message);
+      console.error('Error stack:', error.stack);
       
       let errorMessage = "Login failed. Please check your credentials.";
       
-      if (error.message.includes("Invalid credentials")) {
+      if (error.message.includes("Invalid credentials") || error.message.includes("incorrect")) {
         errorMessage = "The email or password you entered is incorrect.";
       } else if (error.message.includes("Too many")) {
         errorMessage = error.message;
+      } else if (error.message.includes("Access denied")) {
+        errorMessage = "Access denied. This application is for authorized administrators only.";
+      } else if (error.message.includes("Email not confirmed")) {
+        errorMessage = "Please check your email and confirm your account before logging in.";
       } else if (error.message.includes("network") || error.message.includes("fetch")) {
         errorMessage = "Network error. Please check your connection and try again.";
+      } else if (error.message.includes("system error")) {
+        errorMessage = `System error: ${error.message}`;
       }
       
       toast({
@@ -194,6 +207,11 @@ const Login = () => {
                 {isLoading ? "Logging in..." : "Login"}
               </Button>
             </form>
+            
+            {/* Debug info in development */}
+            <div className="mt-4 p-2 bg-muted rounded text-xs text-muted-foreground">
+              <p>Debug: Check console for detailed login information</p>
+            </div>
           </CardContent>
         </Card>
       </div>
