@@ -34,9 +34,9 @@ export const useAuth = () => {
 
     const checkAuthState = async () => {
       try {
-        // Add timeout to prevent infinite loading
+        // Increase timeout to prevent premature failures
         const timeoutPromise = new Promise<never>((_, reject) => 
-          setTimeout(() => reject(new Error('Auth check timeout')), 8000)
+          setTimeout(() => reject(new Error('Auth check timeout')), 15000)
         );
         
         const sessionCheckPromise = securityService.validateSession();
@@ -57,7 +57,6 @@ export const useAuth = () => {
             loading: false
           });
 
-          // Log successful session validation
           console.log('Session validated successfully');
         } else {
           setAuthState({
@@ -80,7 +79,7 @@ export const useAuth = () => {
       }
     };
 
-    // Set up auth state listener with enhanced security and timeout protection
+    // Enhanced auth state listener with better error handling
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
@@ -94,9 +93,12 @@ export const useAuth = () => {
 
         if (session?.user) {
           try {
-            // Set a reasonable timeout for admin verification
-            const timeoutPromise = new Promise<boolean>((_, reject) => 
-              setTimeout(() => reject(new Error('Admin verification timeout')), 5000)
+            // Significantly increase timeout and add graceful fallback
+            const timeoutPromise = new Promise<boolean>((resolve) => 
+              setTimeout(() => {
+                console.log('Admin verification timeout, defaulting to false');
+                resolve(false);
+              }, 12000)
             );
             
             const adminCheckPromise = securityService.verifyAdminAccess(session.user.id);
@@ -110,18 +112,18 @@ export const useAuth = () => {
                 loading: false
               });
 
-              // Log auth events for security monitoring
               if (event === 'SIGNED_IN') {
                 console.log('User signed in successfully');
               }
             }
           } catch (error) {
             console.error('Error checking admin status:', error);
+            // Don't fail the entire auth process due to admin check failure
             if (mounted) {
               setAuthState({
                 user: session.user,
                 session,
-                isAdmin: false,
+                isAdmin: false, // Default to false on error
                 loading: false
               });
             }
@@ -143,13 +145,13 @@ export const useAuth = () => {
       }
     );
 
-    // Initial auth check with timeout protection
+    // Increased timeout for initial auth check
     sessionCheckTimeout = setTimeout(() => {
       if (mounted) {
         console.log('Auth check timeout, setting loading to false');
         setAuthState(prev => ({ ...prev, loading: false }));
       }
-    }, 10000); // 10 second maximum loading time
+    }, 15000); // Increased from 10 to 15 seconds
 
     checkAuthState();
 

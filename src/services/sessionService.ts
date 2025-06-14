@@ -9,18 +9,20 @@ interface SessionValidationResult {
 }
 
 class SessionService {
-  // Optimized admin verification to prevent delays
+  // More resilient admin verification with better timeout handling
   private async quickAdminVerification(userId: string, email: string): Promise<boolean> {
     try {
-      // First check if email is confirmed
       if (!email) {
         console.log('Quick admin verification failed: No email');
         return false;
       }
       
-      // Use a timeout to prevent hanging
-      const timeoutPromise = new Promise<boolean>((_, reject) => 
-        setTimeout(() => reject(new Error('Admin verification timeout')), 5000)
+      // Increased timeout and better error handling
+      const timeoutPromise = new Promise<boolean>((resolve) => 
+        setTimeout(() => {
+          console.log('Admin verification timeout, returning false');
+          resolve(false);
+        }, 10000) // Increased from 5 to 10 seconds
       );
       
       const verificationPromise = adminVerificationService.verifyAdminAccess(userId);
@@ -29,16 +31,23 @@ class SessionService {
       return result;
     } catch (error) {
       console.error('Quick admin verification error:', error);
-      // If verification times out or fails, allow login but mark as non-admin for safety
+      // Always return false on error to prevent auth disruption
       return false;
     }
   }
 
-  // Optimized session validation
+  // Enhanced session validation with better error recovery
   async validateSession(): Promise<SessionValidationResult> {
     try {
       console.log('Validating session...');
-      const { data: { session }, error } = await supabase.auth.getSession();
+      
+      // Add timeout to session check as well
+      const sessionPromise = supabase.auth.getSession();
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('Session check timeout')), 8000)
+      );
+      
+      const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]);
       
       if (error) {
         console.log('Session validation error:', error.message);
@@ -50,14 +59,32 @@ class SessionService {
         return { valid: false };
       }
       
-      // Check if session is expired
-      if (session.expires_at && session.expires_at * 1000 < Date.now()) {
-        console.log('Session expired');
-        await supabase.auth.signOut();
-        return { valid: false };
+      // Check if session is expired with buffer time
+      const currentTime = Date.now();
+      const expiryTime = session.expires_at ? session.expires_at * 1000 : 0;
+      const bufferTime = 5 * 60 * 1000; // 5 minutes buffer
+      
+      if (expiryTime > 0 && expiryTime - bufferTime < currentTime) {
+        console.log('Session near expiry or expired, refreshing...');
+        try {
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          if (refreshError || !refreshData.session) {
+            console.log('Session refresh failed:', refreshError?.message);
+            await supabase.auth.signOut();
+            return { valid: false };
+          }
+          // Use refreshed session
+          const refreshedSession = refreshData.session;
+          const isAdmin = await this.quickAdminVerification(refreshedSession.user.id, refreshedSession.user.email || '');
+          return { valid: true, user: refreshedSession.user, isAdmin };
+        } catch (refreshError) {
+          console.error('Error refreshing session:', refreshError);
+          await supabase.auth.signOut();
+          return { valid: false };
+        }
       }
       
-      // Quick admin verification for existing sessions
+      // Session is valid, check admin status
       const isAdmin = await this.quickAdminVerification(session.user.id, session.user.email || '');
       console.log('Session admin verification:', isAdmin);
       
