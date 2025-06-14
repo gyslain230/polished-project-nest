@@ -13,6 +13,11 @@ export const useInactivityTracker = (isAuthenticated: boolean) => {
 
   const handleSignOut = useCallback(async () => {
     try {
+      console.log('Inactivity sign-out triggered');
+      
+      // Stop tracking immediately to prevent double signouts
+      inactivityService.stopTracking();
+      
       await logoutService.secureLogout();
       setShowWarning(false);
       
@@ -25,10 +30,13 @@ export const useInactivityTracker = (isAuthenticated: boolean) => {
       navigate('/login');
     } catch (error) {
       console.error('Error during auto sign-out:', error);
+      // Force navigation even if logout fails
+      navigate('/login');
     }
   }, [navigate, toast]);
 
   const handleWarning = useCallback((timeLeft: number) => {
+    console.log('Inactivity warning triggered, time left:', timeLeft / 1000, 'seconds');
     setTimeLeft(timeLeft);
     setShowWarning(true);
   }, []);
@@ -38,6 +46,7 @@ export const useInactivityTracker = (isAuthenticated: boolean) => {
   }, []);
 
   const extendSession = useCallback(() => {
+    console.log('User extended session');
     inactivityService.extendSession();
     setShowWarning(false);
     
@@ -48,14 +57,20 @@ export const useInactivityTracker = (isAuthenticated: boolean) => {
     });
   }, [toast]);
 
+  const dismissWarning = useCallback(() => {
+    setShowWarning(false);
+  }, []);
+
   useEffect(() => {
     if (isAuthenticated) {
+      console.log('Starting inactivity tracking for authenticated user');
       inactivityService.startTracking(
         handleSignOut,
         handleWarning,
         handleCountdownUpdate
       );
     } else {
+      console.log('Stopping inactivity tracking - user not authenticated');
       inactivityService.stopTracking();
       setShowWarning(false);
     }
@@ -65,10 +80,22 @@ export const useInactivityTracker = (isAuthenticated: boolean) => {
     };
   }, [isAuthenticated, handleSignOut, handleWarning, handleCountdownUpdate]);
 
+  // Debug information
+  useEffect(() => {
+    const config = inactivityService.getConfiguration();
+    console.log('Inactivity tracker configuration:', {
+      timeout: config.inactivityTimeout / 1000 / 60 + ' minutes',
+      warning: config.warningTime / 1000 / 60 + ' minutes',
+      isTracking: config.isTracking,
+      isAuthenticated
+    });
+  }, [isAuthenticated]);
+
   return {
     showWarning,
     timeLeft,
     extendSession,
-    handleSignOut
+    handleSignOut,
+    dismissWarning
   };
 };

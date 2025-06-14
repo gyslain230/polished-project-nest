@@ -11,7 +11,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Clock } from "lucide-react";
+import { Clock, Shield } from "lucide-react";
 
 interface InactivityWarningProps {
   isOpen: boolean;
@@ -38,31 +38,44 @@ const InactivityWarning = ({ isOpen, timeLeft, onExtend, onSignOut }: Inactivity
     return `${remainingSeconds}`;
   };
 
+  const getUrgencyColor = (milliseconds: number): string => {
+    const seconds = Math.ceil(milliseconds / 1000);
+    if (seconds <= 30) return "text-red-600";
+    if (seconds <= 60) return "text-orange-600";
+    return "text-yellow-600";
+  };
+
   return (
     <AlertDialog open={isOpen}>
       <AlertDialogContent className="sm:max-w-md">
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2">
-            <Clock className="h-5 w-5 text-orange-500" />
-            Session Timeout Warning
+            <Shield className="h-5 w-5 text-orange-500" />
+            Security Timeout Warning
           </AlertDialogTitle>
-          <AlertDialogDescription>
-            Your session will expire due to inactivity in{' '}
-            <span className="font-bold text-orange-600">
-              {formatTime(countdown)}
-            </span>
-            . Would you like to extend your session?
+          <AlertDialogDescription className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4" />
+              <span>Your session will expire in{' '}
+                <span className={`font-bold ${getUrgencyColor(countdown)}`}>
+                  {formatTime(countdown)}
+                </span>
+              </span>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              This is a security measure to protect your account from unauthorized access.
+            </p>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-row gap-2">
           <AlertDialogCancel asChild>
-            <Button variant="outline" onClick={onSignOut}>
+            <Button variant="outline" onClick={onSignOut} className="order-2 sm:order-1">
               Sign Out Now
             </Button>
           </AlertDialogCancel>
           <AlertDialogAction asChild>
-            <Button onClick={onExtend}>
-              Extend Session
+            <Button onClick={onExtend} className="order-1 sm:order-2">
+              Stay Signed In
             </Button>
           </AlertDialogAction>
         </AlertDialogFooter>
