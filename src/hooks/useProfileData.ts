@@ -24,10 +24,10 @@ export const useProfileData = () => {
     skill_percentages: [],
   });
 
-  const fetchProfile = async () => {
+  const fetchProfile = async (isAdmin: boolean = false) => {
     try {
       setIsFetching(true);
-      const data = await fetchProfileData();
+      const data = await fetchProfileData(isAdmin); // Only include email for admin
       
       if (data) {
         setProfile(data);
@@ -112,7 +112,7 @@ export const useProfileData = () => {
   };
 
   useEffect(() => {
-    fetchProfile();
+    fetchProfile(false); // Public access by default
   }, []);
 
   return {
@@ -123,5 +123,6 @@ export const useProfileData = () => {
     handleSkillsChange,
     handleSkillPercentagesChange,
     saveProfile,
+    fetchProfile, // Expose fetchProfile so admin components can request email data
   };
 };

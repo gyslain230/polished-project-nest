@@ -17,8 +17,14 @@ const ProfileAdmin = () => {
     handleChange, 
     handleSkillsChange, 
     handleSkillPercentagesChange, 
-    saveProfile 
+    saveProfile,
+    fetchProfile 
   } = useProfileData();
+
+  // Fetch admin profile data (including email) when component mounts
+  React.useEffect(() => {
+    fetchProfile(true); // Request admin access with email
+  }, []);
 
   const handleImageChange = (url: string) => {
     handleChange({
