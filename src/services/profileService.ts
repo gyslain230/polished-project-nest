@@ -37,7 +37,10 @@ export const fetchProfileData = async (includeEmail: boolean = false): Promise<P
     } else {
       // Public access - use secure function that excludes email
       const result = await supabase.rpc('get_public_profile_data');
-      if (result.error) throw result.error;
+      if (result.error) {
+        console.error('RPC function error:', result.error);
+        throw result.error;
+      }
       data = result.data?.[0] || null;
     }
     
@@ -51,12 +54,16 @@ export const fetchProfileData = async (includeEmail: boolean = false): Promise<P
       ...data,
       skills: data.skills || [],
       skill_percentages: parsedSkillPercentages,
-      email: includeEmail ? data.email : null // Only include email if explicitly requested
+      email: includeEmail ? data.email || null : null // Only include email if explicitly requested
     };
     
     return profileWithDefaults;
   } catch (error) {
     console.error('Error fetching profile:', error);
+    // For public access, don't throw errors, just return null
+    if (!includeEmail) {
+      return null;
+    }
     throw error;
   }
 };

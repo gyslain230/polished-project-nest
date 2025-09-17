@@ -1,9 +1,9 @@
 
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchProfileData } from "@/services/profileService";
 import ProfileBio from "./about/ProfileBio";
 import AboutSkills from "./about/AboutSkills";
-import { Profile, parseSkillPercentages } from "@/types/profile";
+import { Profile } from "@/types/profile";
 
 const About = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -13,32 +13,9 @@ const About = () => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
-        
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('*')
-          .limit(1)
-          .maybeSingle();
-        
-        if (error) {
-          console.error('Error fetching profile:', error);
-          return;
-        }
-        
-        if (data) {
-          // Parse skill_percentages from the database using our utility function
-          const parsedSkillPercentages = parseSkillPercentages(data.skill_percentages);
-          
-          // Ensure skills and skill_percentages are defined
-          const profileWithDefaults: Profile = {
-            ...data,
-            skills: data.skills || [],
-            skill_percentages: parsedSkillPercentages
-          };
-          
-          setProfile(profileWithDefaults);
-          console.log("Profile data fetched:", profileWithDefaults);
-        }
+        const data = await fetchProfileData(false); // Public access, no email
+        setProfile(data);
+        console.log("About profile data fetched:", data);
       } catch (error) {
         console.error('Error fetching profile:', error);
       } finally {

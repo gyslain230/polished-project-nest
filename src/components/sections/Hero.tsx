@@ -2,14 +2,9 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { fetchProfileData } from "@/services/profileService";
+import { Profile } from "@/types/profile";
 import { Skeleton } from "@/components/ui/skeleton";
-
-interface Profile {
-  name: string;
-  role: string;
-  profile_image: string | null;
-}
 
 const Hero = () => {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -19,20 +14,9 @@ const Hero = () => {
     const fetchProfile = async () => {
       try {
         setIsLoading(true);
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('name, role, profile_image')
-          .limit(1)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-        
-        if (data) {
-          setProfile(data);
-          console.log("Hero profile data fetched:", data);
-        }
+        const data = await fetchProfileData(false); // Public access, no email
+        setProfile(data);
+        console.log("Hero profile data fetched:", data);
       } catch (error) {
         console.error('Error fetching profile for hero section:', error);
       } finally {
