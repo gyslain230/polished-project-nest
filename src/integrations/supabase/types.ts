@@ -193,6 +193,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_admin_profile: {
+        Args: { user_email: string; user_id: string }
+        Returns: boolean
+      }
       delete_old_messages: {
         Args: Record<PropertyKey, never>
         Returns: undefined

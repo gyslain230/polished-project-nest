@@ -32,36 +32,19 @@ class AdminVerificationService {
       // Check/create profile with retry
       await networkRetryService.executeWithRetry(
         async () => {
-          const { data: profileData, error: profileError } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', userId)
-            .single();
+          // First, try to create admin profile using secure function
+          const { error: createError } = await supabase.rpc('create_admin_profile', {
+            user_id: userId,
+            user_email: user.email
+          });
 
-          if (profileError) {
-            if (profileError.code === 'PGRST116') {
-              const { error: insertError } = await supabase
-                .from('profiles')
-                .insert({
-                  id: userId,
-                  email: user.email,
-                  name: user.email.split('@')[0],
-                  role: 'Admin'
-                })
-                .select()
-                .single();
-
-              if (insertError) {
-                throw new Error('Failed to create admin profile');
-              }
-            } else {
-              throw new Error('Profile query error');
-            }
-          } else if (profileData.email !== user.email) {
-            await supabase
-              .from('profiles')
-              .update({ email: user.email })
-              .eq('id', userId);
+          // If create function returns false, user is not admin
+          if (createError && createError.message.includes('false')) {
+            throw new Error('User is not an authorized administrator');
+          }
+          
+          if (createError) {
+            throw new Error('Failed to create/verify admin profile');
           }
         },
         { maxRetries: 2, baseDelay: 1500, timeoutMs: 20000 }
