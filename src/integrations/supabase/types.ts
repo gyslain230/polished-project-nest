@@ -215,7 +215,7 @@ export type Database = {
     }
     Functions: {
       create_admin_profile: {
-        Args: { user_email: string; user_id: string }
+        Args: { p_user_email: string; p_user_id: string }
         Returns: boolean
       }
       delete_old_messages: { Args: never; Returns: undefined }
