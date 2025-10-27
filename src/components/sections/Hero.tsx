@@ -52,7 +52,7 @@ const Hero = () => {
                 Hi, I'm <span className="gradient-text">{profile?.name || "John Doe"}</span>
               </h1>
               <p className="text-xl text-muted-foreground mb-8 max-w-lg">
-                A {profile?.role || "full-stack developer"} specializing in building exceptional digital experiences with modern technologies.
+                A {profile?.professional_title || "full-stack developer"} specializing in building exceptional digital experiences with modern technologies.
               </p>
               <div className="flex flex-wrap gap-4">
                 <Button asChild size="lg" className="gap-2">

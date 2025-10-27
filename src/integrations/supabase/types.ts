@@ -111,8 +111,8 @@ export type Database = {
           linkedin: string | null
           location: string | null
           name: string
+          professional_title: string
           profile_image: string | null
-          role: string
           skill_percentages: Json | null
           skills: string[] | null
           twitter: string | null
@@ -127,8 +127,8 @@ export type Database = {
           linkedin?: string | null
           location?: string | null
           name: string
+          professional_title: string
           profile_image?: string | null
-          role: string
           skill_percentages?: Json | null
           skills?: string[] | null
           twitter?: string | null
@@ -143,8 +143,8 @@ export type Database = {
           linkedin?: string | null
           location?: string | null
           name?: string
+          professional_title?: string
           profile_image?: string | null
-          role?: string
           skill_percentages?: Json | null
           skills?: string[] | null
           twitter?: string | null
@@ -188,6 +188,27 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -197,12 +218,9 @@ export type Database = {
         Args: { user_email: string; user_id: string }
         Returns: boolean
       }
-      delete_old_messages: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      delete_old_messages: { Args: never; Returns: undefined }
       get_public_profile_data: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           bio: string
           created_at: string
@@ -211,21 +229,25 @@ export type Database = {
           linkedin: string
           location: string
           name: string
+          professional_title: string
           profile_image: string
-          role: string
           skill_percentages: Json
           skills: string[]
           twitter: string
           updated_at: string
         }[]
       }
-      is_admin: {
-        Args: { user_id: string }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
         Returns: boolean
       }
+      is_admin: { Args: { user_id: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -352,6 +374,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const

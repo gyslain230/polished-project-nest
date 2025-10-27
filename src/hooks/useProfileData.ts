@@ -12,7 +12,7 @@ export const useProfileData = () => {
   const [isFetching, setIsFetching] = useState(true);
   const [profile, setProfile] = useState<Profile>({
     name: "",
-    role: "",
+    professional_title: "",
     profile_image: "",
     bio: "",
     location: "",

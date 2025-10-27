@@ -86,7 +86,7 @@ export const saveProfileData = async (profile: Profile): Promise<boolean> => {
         .from('profiles')
         .update({
           name: profile.name,
-          role: profile.role,
+          professional_title: profile.professional_title,
           profile_image: profile.profile_image,
           bio: profile.bio,
           location: profile.location,
@@ -105,7 +105,7 @@ export const saveProfileData = async (profile: Profile): Promise<boolean> => {
         .from('profiles')
         .insert({
           name: profile.name,
-          role: profile.role,
+          professional_title: profile.professional_title,
           profile_image: profile.profile_image,
           bio: profile.bio,
           location: profile.location,

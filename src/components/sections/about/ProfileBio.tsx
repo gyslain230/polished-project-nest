@@ -49,7 +49,7 @@ const ProfileBio = ({ profile, isLoading }: ProfileBioProps) => {
             </div>
             <div>
               <h3 className="font-semibold">Role</h3>
-              <p className="text-muted-foreground">{profile?.role || "Full Stack Developer"}</p>
+              <p className="text-muted-foreground">{profile?.professional_title || "Full Stack Developer"}</p>
             </div>
           </CardContent>
         </Card>

@@ -9,7 +9,7 @@ export interface SkillPercentage {
 export interface Profile {
   id?: string;
   name: string;
-  role: string;
+  professional_title: string;
   profile_image: string;
   bio: string | null;
   location: string | null;

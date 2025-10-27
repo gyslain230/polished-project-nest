@@ -46,13 +46,13 @@ const PersonalInfoForm = ({ profile, handleChange }: PersonalInfoFormProps) => {
             </div>
             
             <div>
-              <label htmlFor="role" className="block text-sm font-medium mb-1">
+              <label htmlFor="professional_title" className="block text-sm font-medium mb-1">
                 Professional Title
               </label>
               <Input
-                id="role"
-                name="role"
-                value={profile.role}
+                id="professional_title"
+                name="professional_title"
+                value={profile.professional_title}
                 onChange={handleChange}
                 placeholder="e.g. Full Stack Developer"
                 required
