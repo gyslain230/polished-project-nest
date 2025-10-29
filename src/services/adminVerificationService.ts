@@ -34,8 +34,8 @@ class AdminVerificationService {
         async () => {
           // First, try to create admin profile using secure function
           const { error: createError } = await supabase.rpc('create_admin_profile', {
-            user_id: userId,
-            user_email: user.email
+            p_user_id: userId,
+            p_user_email: user.email
           });
 
           // If create function returns false, user is not admin
